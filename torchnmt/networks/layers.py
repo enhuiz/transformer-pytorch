@@ -1,3 +1,5 @@
+import copy
+
 import numpy as np
 import torch
 import torch.nn as nn
@@ -5,9 +7,8 @@ import torch.nn.functional as F
 
 
 class ScaledDotProductAttention(nn.Module):
-    def __init__(self, dropout=0.1):
-        super(ScaledDotProductAttention, self).__init__()
-        self.dropout = nn.Dropout(dropout, inplace=True)
+    def __init__(self):
+        super().__init__()
 
     def forward(self, q, k, v, mask=None):
         """
@@ -27,14 +28,13 @@ class ScaledDotProductAttention(nn.Module):
         if mask is not None:
             scores = scores.masked_fill(mask == 0, -np.inf)
         weights = F.softmax(scores, dim=-1)
-        weights = self.dropout(weights)
         context = weights @ v
 
         return context, weights
 
 
 class MultiHeadAttention(nn.Module):
-    def __init__(self, heads, dim, attention):
+    def __init__(self, heads, dim, attention=ScaledDotProductAttention()):
         """
         Args:
             dim: model's dim
@@ -84,11 +84,51 @@ class MultiHeadAttention(nn.Module):
         # add head dim for mask
         mask = mask.unsqueeze(1)
 
-        context, weights = self.attention(q, k, v, mask)
+        context, self.weights = self.attention(q, k, v, mask)
 
         # swap len and head back
         context = context.transpose(1, 2).contiguous()
         context = context.view(bs, ql, self.dim)
         context = self.fc(context)
 
-        return context, weights
+        return context
+
+
+class FeedForwardLayer(nn.Module):
+    def __init__(self, model_dim, ffn_dim, dropout=0.1):
+        super().__init__()
+        self.w1 = nn.Linear(model_dim, ffn_dim)
+        self.w2 = nn.Linear(ffn_dim, model_dim)
+
+    def forward(self, x):
+        return self.w2(F.relu(self.w1(x)))
+
+
+class SublayerWrapper(nn.Module):
+    def __init__(self, sublayer, dropout=0.1):
+        super().__init__()
+        self.sublayer = sublayer
+        self.dropout = nn.Dropout(dropout, inplace=True)
+        self.norm = nn.LayerNorm(sublayer.dim)
+
+    def forward(self, x):
+        return self.norm(x + self.dropout(self.sublayer(x)))
+
+
+class PositionalEncoding(nn.Module):
+    def __init__(self, dim, max_len=4096):
+        super().__init__()
+
+        pos = np.arange(0, max_len)[:, None]
+        i = np.arange(0, dim // 2)
+        denom = 10000 ** (2 * i / dim)
+
+        pe = np.zeros([max_len, dim])
+        pe[:, 0::2] = np.sin(pos / denom)
+        pe[:, 1::2] = np.cos(pos / denom)
+        pe = torch.from_numpy(pe).float()
+
+        self.register_buffer('pe', pe)
+
+    def forward(self, x):
+        return x + self.pe[:x.shape[1]]

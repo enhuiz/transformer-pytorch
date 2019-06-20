@@ -3,15 +3,14 @@ import torch
 import torch.nn as nn
 
 from .layers import SublayerWrapper, PositionalEncoding, MultiHeadAttention, FeedForwardLayer
-from .utils import clones
 
 
 class TransformerDecoderLayer(nn.Module):
-    def __init__(self, self_attn, src_attn, ffn, dropout):
+    def __init__(self, dim, self_attn, src_attn, ffn, dropout):
         super().__init__()
-        self.self_attn = SublayerWrapper(self_attn, dropout)
-        self.src_attn = SublayerWrapper(src_attn, dropout)
-        self.ffn = ffn
+        self.self_attn = SublayerWrapper(dim, self_attn, dropout)
+        self.src_attn = SublayerWrapper(dim, src_attn, dropout)
+        self.ffn = SublayerWrapper(dim, ffn, dropout)
 
     def forward(self, x, m, mem_mask, tgt_mask):
         """
@@ -29,15 +28,15 @@ class TransformerDecoderLayer(nn.Module):
 
 
 class TransformerDecoder(nn.Module):
-    def __init__(self, layers, heads, output_dim, model_dim, ffn_dim, dropout):
+    def __init__(self, layers, heads, output_dim, model_dim, ffn_dim, dropout=0.1):
         super().__init__()
         self.embed = nn.Embedding(output_dim, model_dim)
         self.pe = PositionalEncoding(model_dim)
         c = copy.deepcopy
         mha = MultiHeadAttention(heads, model_dim)
         ffn = FeedForwardLayer(model_dim, ffn_dim)
-        module = TransformerDecoderLayer(mha, c(mha), ffn, dropout)
-        self.modules = clones(module, layers)
+        layer = TransformerDecoderLayer(model_dim, mha, c(mha), ffn, dropout)
+        self.layers = nn.ModuleList([c(layer) for _ in range(layers)])
         self.fc = nn.Linear(model_dim, output_dim)
 
     def forward(self, x, m, mem_mask, tgt_mask):
@@ -50,7 +49,7 @@ class TransformerDecoder(nn.Module):
         """
         x = self.embed(x)
         x = self.pe(x)
-        for module in self.modules:
-            x = module(x, m, mem_mask, tgt_mask)
+        for layer in self.layers:
+            x = layer(x, m, mem_mask, tgt_mask)
         x = self.fc(x)
         return x

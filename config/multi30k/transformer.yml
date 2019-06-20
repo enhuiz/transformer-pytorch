@@ -1,0 +1,39 @@
+dataset:
+  proto: Multi30kDataset
+  root: /home/zniu/workspace/dataset/multi30k
+  src: de
+  tgt: en
+
+model:
+  proto: Transformer
+
+  encoder:
+    proto: TransformerEncoder
+    model_dim: 512
+    ffn_dim: 2048
+    layers: 6
+    heads: 8
+    input_dim: 19085 # de
+
+  decoder:
+    proto: TransformerDecoder
+    model_dim: 512
+    ffn_dim: 2048
+    layers: 6
+    heads: 8
+    output_dim: 11174 # en
+
+train:
+  device: cuda
+  lr: 0.001
+  batch_size: 64
+  epochs: 100
+  continued: true
+
+test:
+  device: cuda
+  batch_size: 64
+  beam_width: 1
+  splits: [val, test]
+  eval_every: 5
+  max_len: 200

@@ -82,7 +82,8 @@ class MultiHeadAttention(nn.Module):
         k = k.transpose(1, 2)
         v = v.transpose(1, 2)
         # add head dim for mask
-        mask = mask.unsqueeze(1)
+        if mask is not None:
+            mask = mask.unsqueeze(1)
 
         context, self.weights = self.attention(q, k, v, mask)
 
@@ -104,17 +105,6 @@ class FeedForwardLayer(nn.Module):
         return self.w2(F.relu(self.w1(x)))
 
 
-class SublayerWrapper(nn.Module):
-    def __init__(self, sublayer, dropout=0.1):
-        super().__init__()
-        self.sublayer = sublayer
-        self.dropout = nn.Dropout(dropout, inplace=True)
-        self.norm = nn.LayerNorm(sublayer.dim)
-
-    def forward(self, x):
-        return self.norm(x + self.dropout(self.sublayer(x)))
-
-
 class PositionalEncoding(nn.Module):
     def __init__(self, dim, max_len=4096):
         super().__init__()
@@ -132,3 +122,14 @@ class PositionalEncoding(nn.Module):
 
     def forward(self, x):
         return x + self.pe[:x.shape[1]]
+
+
+class SublayerWrapper(nn.Module):
+    def __init__(self, dim, sublayer, dropout):
+        super().__init__()
+        self.sublayer = sublayer
+        self.dropout = nn.Dropout(dropout, inplace=True)
+        self.norm = nn.LayerNorm(dim)
+
+    def forward(self, x, *args):
+        return self.norm(x + self.dropout(self.sublayer(x, *args)))

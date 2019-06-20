@@ -29,12 +29,12 @@ train:
   batch_size: 32
   epochs: 200
   continued: true
-  save_every: 5
+  save_every: 10
 
 test:
   device: cuda
   batch_size: 1
-  beam_width: 20
+  beam_width: 5
   splits: [val, test]
-  max_len: 50
+  max_len: 30
   all: false

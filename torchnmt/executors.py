@@ -83,8 +83,7 @@ class Trainer(Executor):
         return optimizer
 
     def init(self, opts):
-        self.dataset = self.get_dataset('train')
-        self.dl = self.create_data_loader(self.dataset, opts.batch_size)
+        self.dl = self.create_data_loader('train', opts.batch_size)
         self.lr0 = opts.lr
         self.lr = opts.lr
         self.epoch = 1

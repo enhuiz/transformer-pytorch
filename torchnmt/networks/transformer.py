@@ -150,7 +150,7 @@ class Transformer(nn.Module):
         memory = memory.expand(beam_width, *memory.shape[1:])
         mem_mask = mem_mask.expand(beam_width, *mem_mask.shape[1:])
 
-        for _ in range(max_len):
+        for _ in range(1, max_len):
             if len(logps) <= 0:
                 break
 
@@ -188,6 +188,7 @@ class Transformer(nn.Module):
         finished = finished + list(zip(logps, hyps))
 
         hyp = max(finished, key=lambda t: t[0])[1]
+
         return hyp
 
     def beam_search_inference(self, mem, mem_mask, max_len, beam_width):

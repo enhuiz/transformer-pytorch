@@ -1,4 +1,5 @@
 import json
+import random
 
 
 class Vocab():
@@ -49,7 +50,7 @@ class Vocab():
     def __str__(self):
         return ("Vocab(#words={}, #vocab={}, #extra={})\n"
                 "Example: {}").format(len(self), len(self.vocab),
-                                      len(self.extra), self.vocab[:5])
+                                      len(self.extra), random.sample(self.vocab, 5))
 
     def __iter__(self):
         for w in self.words:

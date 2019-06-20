@@ -53,17 +53,17 @@ class Executor():
         self.saver = CheckpointSaver('ckpt/{}'.format(self.name))
         self.model = networks.get(opts.model)
 
-    def get_dataset(self, split):
+    def create_dataset(self, split):
         return datasets.get(self.opts.dataset, split)
 
-    def create_data_loader(self, dataset, batch_size):
-        if hasattr(dataset, 'get_collate_fn'):
-            collate_fn = dataset.get_collate_fn()
+    def create_data_loader(self, split, batch_size, shuffle=True):
+        ds = self.create_dataset(split)
+        if hasattr(ds, 'get_collate_fn'):
+            collate_fn = ds.get_collate_fn()
         else:
             collate_fn = default_collate
-
-        return DataLoader(dataset, batch_size,
-                          shuffle=True,
+        return DataLoader(ds, batch_size,
+                          shuffle=shuffle,
                           num_workers=4,
                           collate_fn=collate_fn)
 
@@ -87,8 +87,9 @@ class Trainer(Executor):
         self.dl = self.create_data_loader(self.dataset, opts.batch_size)
         self.lr0 = opts.lr
         self.lr = opts.lr
+        self.epoch = 1
         self.epochs = opts.epochs
-        self.epoch = 0
+        self.save_every = opts.save_every
 
         if opts.continued:
             ckpt = self.saver.get_latest_ckpt('epoch')
@@ -115,7 +116,7 @@ class Trainer(Executor):
     def start(self):
         self.model.train()
 
-        while self.epoch < self.epochs:
+        while self.epoch <= self.epochs:
             self.update_lr()
 
             iteration = self.epoch * len(self.dl)
@@ -140,7 +141,9 @@ class Trainer(Executor):
                                        iteration)
                 iteration += 1
 
-            self.saver.save('epoch', self.model.state_dict(), self.epoch)
+            if self.epoch % self.save_every == 0:
+                self.saver.save('epoch', self.model.state_dict(), self.epoch)
+
             self.epoch += 1
 
 
@@ -151,19 +154,19 @@ class Tester(Executor):
 
     def init(self, opts):
         self.splits = opts.splits
-        self.dss = {sp: self.get_dataset(sp)
-                    for sp in opts.splits}
-        self.dls = {sp: self.create_data_loader(self.dss[sp], opts.batch_size)
-                    for sp in self.dss}
-        self.vocab = self.dss[self.splits[0]].tgt_vocab
+        self.dls = {sp: self.create_data_loader(
+            sp, opts.batch_size, shuffle=False) for sp in self.splits}
+        self.vocab = self.create_dataset('train').tgt_vocab
         self.model = self.model.to(opts.device)
+        self.all = opts.all
 
     def start(self):
         self.model.eval()
 
-        k = self.opts.test.eval_every
-        ckpts = self.saver.get_all_ckpts('epoch')
-        ckpts = ckpts[k - 1::k]
+        if self.all:
+            ckpts = self.saver.get_all_ckpts('epoch')
+        else:
+            ckpts = [self.saver.get_latest_ckpt('epoch')]
 
         for ckpt in ckpts:
             epoch = self.saver.parse_step(ckpt)
@@ -197,8 +200,12 @@ class Tester(Executor):
 
         pathbase = os.path.join(out_dir, '{}')
 
+        scores = str(compute_scores(refs, hyps))
+
         with open(pathbase.format('scores.txt'), 'w') as f:
-            f.write(str(compute_scores(refs, hyps)))
+            f.write(scores)
+
+        print(scores)
 
         df['refs'].to_csv(pathbase.format('refs.txt'),
                           header=False, index=False)

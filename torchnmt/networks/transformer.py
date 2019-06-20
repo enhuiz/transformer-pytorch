@@ -56,6 +56,8 @@ class Transformer(nn.Module):
                 'loss': loss
             }
         else:
+            # time step
+            # inputs: hyps (bs, len), mem, mem_mask
             if beam_width == 1:
                 hyps = self.greedy_inference(mem, src_mask, max_len)
             else:
@@ -95,100 +97,102 @@ class Transformer(nn.Module):
     def greedy_inference(self, mem, mem_mask, max_len):
         """
         Args:
-            mem: (bs, src_len, input_dim)
+            mem: (bs, src_len, model_dim)
         Outputs:
-            tgt_output: [(tgt_len, )] 
+            tgt_output: [(tgt_len,)]
         """
         bos = Vocab.extra2idx('<s>')
         eos = Vocab.extra2idx('</s>')
 
+        batch_idx = torch.arange(len(mem))
         running = torch.full((len(mem), 1), bos).long().to(self.device)
-        done = []
+        finished = []
 
         for _ in range(max_len):
             outputs = self.decoder(running, mem, mem_mask, None)
             outputs = outputs[:, -1].argmax(dim=-1)  # (bs,)
             running = torch.cat([running, outputs[:, None]], dim=-1)
+
             running_idx = (outputs != eos).nonzero().squeeze(1)
             finished_idx = (outputs == eos).nonzero().squeeze(1)
-            done += running[finished_idx].tolist()
+
+            finished += list(zip(batch_idx[finished_idx],
+                                 running[finished_idx].tolist()))
+
             running = running[running_idx]
+            batch_idx = batch_idx[running_idx]
             mem = mem[running_idx]
             mem_mask = mem_mask[running_idx]
 
             if len(running) == 0:
                 break
 
-        done += running.tolist()
-        return done
+        finished += list(zip(batch_idx, running.tolist()))
+        finished = [x[1] for x in sorted(finished, key=lambda x: x[0])]
+
+        return finished
 
     def beam_search_helper(self, memory, mem_mask, max_len, beam_width):
         """
         Args:
-            videos: unpadded videos, [(l, c, h, w)]
+            mem: (bs, src_len, model_dim)
+        Outputs:
+            tgt_output: (tgt_len,)
         """
         bos = Vocab.extra2idx('<s>')
         eos = Vocab.extra2idx('</s>')
 
-        running = [(0, torch.LongTensor([bos]))]
-        done = []
+        logps = torch.tensor([0.0]).to(self.device)
+        hyps = torch.tensor([[bos]]).long().to(self.device)
+
+        finished = []
 
         memory = memory.expand(beam_width, *memory.shape[1:])
         mem_mask = mem_mask.expand(beam_width, *mem_mask.shape[1:])
 
         for _ in range(max_len):
-            if beam_width <= 0:
+            if len(logps) <= 0:
                 break
 
-            logps, hyps = zip(*running)
-            hyps = torch.stack(hyps).to(self.device)
             outputs = self.decoder(hyps,
-                                   memory[:len(running)],
-                                   mem_mask[:len(running)],
-                                   None)
+                                   memory[:len(logps)],
+                                   mem_mask[:len(logps)])
 
-            outputs = outputs[:, -1]
-            outputs = torch.log_softmax(outputs, dim=-1)
+            outputs = torch.log_softmax(outputs[:, -1], dim=-1)
 
             # for each beam, calculate top k
-            sub_logps, sub_indexes = torch.topk(outputs, beam_width)
+            tmp_logps, tmp_idxs = torch.topk(outputs, beam_width)
 
             # calculate accumulated logps
-            for i in range(len(logps)):
-                sub_logps[i] += logps[i]
+            tmp_logps += logps[:, None]
 
             # calculate new top k
-            sub_logps = sub_logps.view(-1)
-            sub_indexes = sub_indexes.view(-1)
+            tmp_logps = tmp_logps.view(-1)
+            tmp_idxs = tmp_idxs.view(-1)
 
-            logps, indexes = torch.topk(sub_logps, beam_width)
+            logps, idxs = torch.topk(tmp_logps, beam_width)
 
-            word_indexes = sub_indexes[indexes]
-            captions_indexes = indexes // len(logps)
+            words = tmp_idxs[idxs]
+            hyps_idxs = idxs // len(logps)
 
-            hyps = [hyps[captions_indexes[i]].tolist() + word_indexes[i:i + 1].tolist()
-                    for i in range(beam_width)]
+            hyps = torch.cat([hyps[hyps_idxs], words[:, None]], dim=1)
 
-            hyps = [torch.LongTensor(hyp) for hyp in hyps]
+            finished_idx = (words == eos).nonzero().squeeze(1)
+            running_idx = (words != eos).nonzero().squeeze(1)
 
-            running = []
-            for logp, hyp in zip(logps, hyps):
-                if hyp[-1] == eos:
-                    done += [(logp, hyp)]
-                    beam_width -= 1
-                    memory = memory[:beam_width]
-                    mem_mask = mem_mask[:beam_width]
-                else:
-                    running += [(logp, hyp)]
+            finished += list(zip(logps[finished_idx], hyps[finished_idx]))
 
-        done = done + running
-        hyp = max(done, key=lambda t: t[0])[1]
+            logps = logps[running_idx]
+            hyps = hyps[running_idx]
 
+        finished = finished + list(zip(logps, hyps))
+
+        hyp = max(finished, key=lambda t: t[0])[1]
         return hyp
 
     def beam_search_inference(self, mem, mem_mask, max_len, beam_width):
-        return [self.beam_search_helper(mem[i:i+1],
-                                        mem_mask[i:i+1],
+        return [self.beam_search_helper(mem[i:i + 1],
+                                        mem_mask[i:i + 1],
                                         max_len,
                                         beam_width)
                 for i in range(len(mem))]

@@ -39,7 +39,7 @@ class TransformerDecoder(nn.Module):
         self.layers = nn.ModuleList([c(layer) for _ in range(layers)])
         self.fc = nn.Linear(model_dim, output_dim)
 
-    def forward(self, x, m, mem_mask, tgt_mask):
+    def forward(self, x, m, mem_mask, tgt_mask=None):
         """
         Args:
             x: target input (bs, tgt_len, tgt_dim)

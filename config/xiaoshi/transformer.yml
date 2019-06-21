@@ -15,7 +15,7 @@ model:
     ffn_dim: 2048
     layers: 6
     heads: 8
-    vocab_size: 4221
+    vocab_size: 4104
 
   decoder:
     proto: TransformerDecoder
@@ -23,7 +23,7 @@ model:
     ffn_dim: 2048
     layers: 6
     heads: 8
-    vocab_size: 4221
+    vocab_size: 4104
 
 train:
   proto: NMTTrainer
@@ -33,6 +33,9 @@ train:
   epochs: 30
   continued: true
   save_every: 10
+  splits:
+    train: "train"
+    val: "val"
 
 test:
   proto: NMTTester

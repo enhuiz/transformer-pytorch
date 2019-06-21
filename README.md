@@ -14,6 +14,12 @@ A simple implementation of the neural machine translation framework using pytorc
 
 ## Example
 
+### Prerequisites
+
+```bash
+pip install -r requirements.txt
+```
+
 ### Train
 
 ```bash

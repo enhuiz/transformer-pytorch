@@ -14,7 +14,7 @@ class TransformerEncoderLayer(nn.Module):
     def forward(self, x, src_mask):
         """
         Args:
-            x: target input (bs, tgt_len, model_dim)
+            x: source input (bs, src_len, model_dim)
             src_mask: (bs, src_len, src_len)
         """
         x = self.self_attn(x, x, x, src_mask)
@@ -36,7 +36,7 @@ class TransformerEncoder(nn.Module):
     def forward(self, x, src_mask):
         """
         Args:
-            x: target input (bs, tgt_len, model_dim)
+            x: source input (bs, src_len, model_dim)
             src_mask: (bs, src_len, src_len)
         """
         x = self.embed(x)

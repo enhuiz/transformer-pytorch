@@ -108,7 +108,7 @@ class NMTTrainer(Trainer):
         loss.backward()
         self.loss = loss.item()
         self.ppl = np.exp(self.loss)
-        self.losses.append(loss)
+        self.losses.append(self.loss)
 
     def iteration_hook(self, iteration):
         super().iteration_hook(iteration)
@@ -120,8 +120,9 @@ class NMTTrainer(Trainer):
     def epoch_hook(self, epoch):
         super().epoch_hook(epoch)
 
-        train_loss = torch.mean(torch.tensor(self.losses))
-        train_ppl = torch.exp(train_loss)
+        train_loss = np.mean(self.losses)
+        train_ppl = np.exp(train_loss)
+        self.losses = []
         print('Epoch {}'.format(epoch))
         print('Train:\tloss: {:.4g}, ppl: {:.4g}'.format(train_loss,
                                                          train_ppl))

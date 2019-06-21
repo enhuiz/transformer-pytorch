@@ -15,11 +15,13 @@ from torchnmt.datasets.utils import Vocab
 
 
 class Transformer(nn.Module):
-    def __init__(self, encoder, decoder):
+    def __init__(self, encoder, decoder, vocab_share=False):
         super().__init__()
         assert encoder.model_dim == decoder.model_dim
         self.encoder = networks.get(encoder)
         self.decoder = networks.get(decoder)
+        if vocab_share:
+            self.decoder.embed = self.encoder.embed
         self.register_buffer('_device', torch.zeros(0))
 
     @property

@@ -28,16 +28,16 @@ class TransformerDecoderLayer(nn.Module):
 
 
 class TransformerDecoder(nn.Module):
-    def __init__(self, layers, heads, output_dim, model_dim, ffn_dim, dropout=0.1):
+    def __init__(self, layers, heads, vocab_size, model_dim, ffn_dim, dropout=0.1):
         super().__init__()
-        self.embed = nn.Embedding(output_dim, model_dim)
+        self.embed = nn.Embedding(vocab_size, model_dim)
         self.pe = PositionalEncoding(model_dim)
         c = copy.deepcopy
         mha = MultiHeadAttention(heads, model_dim)
         ffn = FeedForwardLayer(model_dim, ffn_dim)
         layer = TransformerDecoderLayer(model_dim, mha, c(mha), ffn, dropout)
         self.layers = nn.ModuleList([c(layer) for _ in range(layers)])
-        self.fc = nn.Linear(model_dim, output_dim)
+        self.fc = nn.Linear(model_dim, vocab_size)
 
     def forward(self, x, m, mem_mask, tgt_mask=None):
         """

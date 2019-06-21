@@ -23,10 +23,10 @@ class TransformerEncoderLayer(nn.Module):
 
 
 class TransformerEncoder(nn.Module):
-    def __init__(self, layers, heads, input_dim, model_dim, ffn_dim, dropout=0.1):
+    def __init__(self, layers, heads, vocab_size, model_dim, ffn_dim, dropout=0.1):
         super().__init__()
         c = copy.deepcopy
-        self.embed = nn.Embedding(input_dim, model_dim)
+        self.embed = nn.Embedding(vocab_size, model_dim)
         self.pe = PositionalEncoding(model_dim)
         mha = MultiHeadAttention(heads, model_dim)
         ffn = FeedForwardLayer(model_dim, ffn_dim)

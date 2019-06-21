@@ -1,30 +1,38 @@
 import os
 import glob
 import string
+import subprocess
 
 import torch
-from torch.utils.data import Dataset
-from torch.nn.utils.rnn import pack_sequence
 
-from torchnmt.datasets.utils import Vocab
+from torchnmt.datasets.base import NMTDataset
+from torchnmt.utils import working_directory
 
 
-class Multi30kDataset(Dataset):
-    def __init__(self, root, split, src, tgt):
-        samples = self.make_samples(root, 'train', src, tgt)
-        self.src_vocab = Vocab(map(lambda x: x[0], samples))
-        self.tgt_vocab = Vocab(map(lambda x: x[1], samples))
-        print(self.src_vocab)
-        print(self.tgt_vocab)
-        if split == 'train':
-            self.samples = samples
-        else:
-            self.samples = self.make_samples(root, split, src, tgt)
+class Multi30kDataset(NMTDataset):
+    def __init__(self, root, split, src, tgt, download=True):
+        super().__init__(root, split, src, tgt, download)
 
-    def make_samples(self, root, split, src, tgt):
-        src = self.load_file(os.path.join(root, split + '.' + src))
-        tgt = self.load_file(os.path.join(root, split + '.' + tgt))
-        return list(zip(src, tgt))
+    def download(self, root):
+        os.makedirs(root, exist_ok=True)
+        print('Downloading dataset.')
+        with working_directory(root):
+            # credit: https://github.com/jadore801120/attention-is-all-you-need-pytorch/blob/master/README.md
+            subprocess.call('/bin/bash -c "$scripts"', shell=True, env={'scripts': '''
+                wget https://raw.githubusercontent.com/moses-smt/mosesdecoder/master/scripts/tokenizer/tokenizer.perl
+                wget https://raw.githubusercontent.com/moses-smt/mosesdecoder/master/scripts/share/nonbreaking_prefixes/nonbreaking_prefix.de
+                wget https://raw.githubusercontent.com/moses-smt/mosesdecoder/master/scripts/share/nonbreaking_prefixes/nonbreaking_prefix.en
+                sed -i "s/$RealBin\/..\/share\/nonbreaking_prefixes//" tokenizer.perl
+                wget https://raw.githubusercontent.com/moses-smt/mosesdecoder/master/scripts/generic/multi-bleu.perl
+
+                wget http://www.quest.dcs.shef.ac.uk/wmt16_files_mmt/training.tar.gz &&  tar -xf training.tar.gz && rm training.tar.gz
+                wget http://www.quest.dcs.shef.ac.uk/wmt16_files_mmt/validation.tar.gz && tar -xf validation.tar.gz && rm validation.tar.gz
+                wget http://www.quest.dcs.shef.ac.uk/wmt16_files_mmt/mmt16_task1_test.tar.gz && tar -xf mmt16_task1_test.tar.gz && rm mmt16_task1_test.tar.gz
+
+                for l in en de; do for f in *.$l; do if [[ "$f" != *"test"* ]]; then sed -i "$ d" $f; fi;  done; done
+                for l in en de; do for f in *.$l; do perl tokenizer.perl -a -no-escape -l $l -q  < $f > $f.atok; done; done
+                '''})
+        print('done.')
 
     def load_file(self, path):
         with open(path, 'r') as f:
@@ -33,30 +41,3 @@ class Multi30kDataset(Dataset):
             string.punctuation + string.digits + "“”"))
         return [s.strip().translate(table).lower().split()
                 for s in content.split('\n')]
-
-    def __getitem__(self, index):
-        src, tgt = self.samples[index]
-        src = ['<s>'] + src + ['</s>']
-        tgt = ['<s>'] + tgt + ['</s>']
-        src = torch.tensor(self.src_vocab.words2idxs(src)).long()
-        tgt = torch.tensor(self.tgt_vocab.words2idxs(tgt)).long()
-        return {
-            'src': src,
-            'tgt': tgt,
-            'src_len': len(src),
-            'tgt_len': len(tgt),
-        }
-
-    def __len__(self):
-        return len(self.samples)
-
-    def get_collate_fn(self):
-        def collate_fn(batch):
-            collated = {}
-            # pack first will make the training faster since it is done by multi workers
-            collated['src'] = pack_sequence([s['src'] for s in batch],
-                                            enforce_sorted=False)
-            collated['tgt'] = pack_sequence([s['tgt'] for s in batch],
-                                            enforce_sorted=False)
-            return collated
-        return collate_fn

@@ -1,10 +1,21 @@
 import os
 import inspect
 import argparse
+import contextlib
 import yaml
 
-
 from torch.nn.utils.rnn import pad_packed_sequence
+
+
+@contextlib.contextmanager
+def working_directory(path):
+    prev = os.getcwd()
+    os.makedirs(path, exist_ok=True)
+    os.chdir(path)
+    try:
+        yield
+    finally:
+        os.chdir(prev)
 
 
 def get_class(class_list, name):

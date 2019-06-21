@@ -37,11 +37,11 @@ class Tester(Executor):
 class NMTTester(Tester):
     def __init__(self, name, model, dataset, opts):
         super().__init__(name, model, dataset, opts)
-        self.vocab = self.create_dataset(self.opts.splits[0]).tgt_vocab
 
     def evaluate(self, model, dl, folder):
         print('Evaluating {} ...'.format(folder))
         model = model.eval()
+        vocab = dl.dataset.tgt_vocab
 
         refs, hyps = [], []
         for batch in tqdm.tqdm(dl, total=len(dl)):
@@ -49,9 +49,9 @@ class NMTTester(Tester):
             with torch.no_grad():
                 batch_hyps = model(src=batch['src'], **vars(self.opts))['hyps']
 
-            refs += [self.vocab.strip_beos_w(self.vocab.idxs2words(ref))
+            refs += [vocab.strip_beos_w(vocab.idxs2words(ref))
                      for ref in batch_refs]
-            hyps += [self.vocab.strip_beos_w(self.vocab.idxs2words(hyp))
+            hyps += [vocab.strip_beos_w(vocab.idxs2words(hyp))
                      for hyp in batch_hyps]
 
         refs = list(map(' '.join, refs))

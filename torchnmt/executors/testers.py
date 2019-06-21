@@ -3,7 +3,7 @@ import tqdm
 import torch
 import pandas as pd
 
-from torchnmt.executors.utils import Executor
+from torchnmt.executors.base import Executor
 from torchnmt.utils import unpack_packed_sequence
 from torchnmt.scores import compute_scores
 

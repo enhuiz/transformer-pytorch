@@ -1,11 +1,13 @@
 dataset:
   proto: XiaoshiDataset
-  root: /home/zniu/workspace/dataset/xiaoshi
+  root: data/xiaoshi
   src: tra
   tgt: org
+  vocab_share: true
 
 model:
   proto: Transformer
+  vocab_share: true
 
   encoder:
     proto: TransformerEncoder
@@ -13,7 +15,7 @@ model:
     ffn_dim: 2048
     layers: 6
     heads: 8
-    input_dim: 3553
+    vocab_size: 4221
 
   decoder:
     proto: TransformerDecoder
@@ -21,22 +23,22 @@ model:
     ffn_dim: 2048
     layers: 6
     heads: 8
-    output_dim: 3705
+    vocab_size: 4221
 
 train:
   proto: NMTTrainer
   device: cuda
   lr: 0.01
   batch_size: 8
-  epochs: 100
+  epochs: 30
   continued: true
-  save_every: 5
+  save_every: 10
 
 test:
   proto: NMTTester
   device: cuda
   batch_size: 32
   beam_width: 20
-  splits: [val, test]
+  splits: [val]
   max_len: 50
   all: false

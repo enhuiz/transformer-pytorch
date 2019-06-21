@@ -11,8 +11,8 @@ from torchnmt.datasets.base import NMTDataset
 
 
 class XiaoshiDataset(NMTDataset):
-    def __init__(self, root, split, src, tgt, download=True):
-        super().__init__(root, split, src, tgt, download)
+    def __init__(self, root, split, src, tgt, vocab_share=False, download=True):
+        super().__init__(root, split, src, tgt, vocab_share, download)
 
     def download(self, root):
         os.makedirs(root, exist_ok=True)
@@ -35,13 +35,14 @@ class XiaoshiDataset(NMTDataset):
                 df['origin'].to_csv(split + '.org', header=False, index=False)
 
             df = pd.read_csv('raw.csv')
-            train_df, val_df = split(df, 0.95)
+            train_df, val_df = split(df, 0.9)
             save(train_df, 'train')
             save(val_df, 'val')
+            save(val_df.head(0), 'test')
 
         print('done.')
 
     def load_file(self, path):
         with open(path, 'r') as f:
-            content = f.read()
+            content = f.read().strip()
         return [list(s.strip()) for s in content.split('\n')]

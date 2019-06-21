@@ -10,8 +10,8 @@ from torchnmt.utils import working_directory
 
 
 class Multi30kDataset(NMTDataset):
-    def __init__(self, root, split, src, tgt, download=True):
-        super().__init__(root, split, src, tgt, download)
+    def __init__(self, root, split, src, tgt, vocab_share=False, download=True):
+        super().__init__(root, split, src, tgt, vocab_share, download)
 
     def download(self, root):
         os.makedirs(root, exist_ok=True)

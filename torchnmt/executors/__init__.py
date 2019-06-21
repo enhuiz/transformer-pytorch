@@ -1,4 +1,5 @@
 import copy
+
 from torchnmt.utils import get_class, get_kwargs
 from .trainers import NMTTrainer
 from .testers import NMTTester

@@ -4,3 +4,5 @@ runs
 ckpt
 results
 ckpt-old
+.vscode
+data

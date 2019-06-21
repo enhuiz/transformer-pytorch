@@ -4,7 +4,7 @@ import argparse
 
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
-from torchnmt.executors import Trainer
+from torchnmt import executors
 from torchnmt.utils import parse_config
 
 
@@ -18,8 +18,7 @@ def get_args():
 def main():
     args = get_args()
     opts = parse_config(args.config)
-
-    trainer = Trainer(opts)
+    trainer = executors.get(opts, opts.train)
     trainer.start()
 
 

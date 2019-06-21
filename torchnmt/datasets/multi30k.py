@@ -14,6 +14,8 @@ class Multi30kDataset(Dataset):
         samples = self.make_samples(root, 'train', src, tgt)
         self.src_vocab = Vocab(map(lambda x: x[0], samples))
         self.tgt_vocab = Vocab(map(lambda x: x[1], samples))
+        print(self.src_vocab)
+        print(self.tgt_vocab)
         if split == 'train':
             self.samples = samples
         else:
@@ -29,7 +31,7 @@ class Multi30kDataset(Dataset):
             content = f.read()
         table = str.maketrans(dict.fromkeys(
             string.punctuation + string.digits + "“”"))
-        return [s.strip().translate(table).split()
+        return [s.strip().translate(table).lower().split()
                 for s in content.split('\n')]
 
     def __getitem__(self, index):

@@ -1,8 +1,8 @@
 dataset:
   proto: XiaoshiDataset
   root: /home/zniu/workspace/dataset/xiaoshi
-  src: org
-  tgt: tra
+  src: tra
+  tgt: org
 
 model:
   proto: Transformer
@@ -24,6 +24,7 @@ model:
     output_dim: 3705
 
 train:
+  proto: NMTTrainer
   device: cuda
   lr: 0.01
   batch_size: 8
@@ -32,6 +33,7 @@ train:
   save_every: 5
 
 test:
+  proto: NMTTester
   device: cuda
   batch_size: 32
   beam_width: 20

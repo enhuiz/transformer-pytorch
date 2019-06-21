@@ -1,8 +1,8 @@
 dataset:
   proto: Multi30kDataset
   root: /home/zniu/workspace/dataset/multi30k
-  src: de
-  tgt: en
+  src: de.atok
+  tgt: en.atok
 
 model:
   proto: Transformer
@@ -13,7 +13,7 @@ model:
     ffn_dim: 2048
     layers: 6
     heads: 8
-    input_dim: 19085 # de
+    input_dim: 17831 # de
 
   decoder:
     proto: TransformerDecoder
@@ -21,20 +21,22 @@ model:
     ffn_dim: 2048
     layers: 6
     heads: 8
-    output_dim: 11174 # en
+    output_dim: 9690 # en
 
 train:
+  proto: NMTTrainer
   device: cuda
   lr: 0.001
-  batch_size: 32
+  batch_size: 64
   epochs: 200
   continued: true
   save_every: 10
 
 test:
+  proto: NMTTester
   device: cuda
-  batch_size: 1
-  beam_width: 5
+  batch_size: 32
+  beam_width: 1
   splits: [val, test]
-  max_len: 30
+  max_len: 52
   all: false

@@ -20,17 +20,14 @@ A simple implementation of the neural machine translation framework using pytorc
 python scripts/train.py config/xiaoshi/transformer.yml
 ```
 
-### Test & Evaluate
+### Test
 
 ```bash
 python scripts/test.py config/xiaoshi/transformer.yml
 ```
 
-## Results
-
-### Xiaoshi
-
-### Multi30K (de-en)
+<!-- ## Results -->
+<!-- TODO -->
 
 ## Acknowledgement
 

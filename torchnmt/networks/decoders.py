@@ -35,7 +35,8 @@ class TransformerDecoder(nn.Module):
         c = copy.deepcopy
         mha = MultiHeadAttention(heads, model_dim)
         ffn = FeedForwardLayer(model_dim, ffn_dim)
-        layer = TransformerDecoderLayer(model_dim, mha, c(mha), ffn, dropout)
+        layer = TransformerDecoderLayer(
+            model_dim, c(mha), c(mha), c(ffn), dropout)
         self.layers = nn.ModuleList([c(layer) for _ in range(layers)])
         self.fc = nn.Linear(model_dim, vocab_size)
 

@@ -30,7 +30,7 @@ class TransformerEncoder(nn.Module):
         self.pe = PositionalEncoding(model_dim)
         mha = MultiHeadAttention(heads, model_dim)
         ffn = FeedForwardLayer(model_dim, ffn_dim)
-        layer = TransformerEncoderLayer(model_dim, mha, ffn, dropout)
+        layer = TransformerEncoderLayer(model_dim, c(mha), c(ffn), dropout)
         self.layers = nn.ModuleList([c(layer) for _ in range(layers)])
 
     def forward(self, x, src_mask):

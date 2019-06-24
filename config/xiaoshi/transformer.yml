@@ -30,7 +30,7 @@ train:
   device: cuda
   lr: 0.01
   batch_size: 8
-  epochs: 30
+  epochs: 50
   continued: true
   save_every: 10
   splits:

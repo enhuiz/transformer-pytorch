@@ -1,3 +1,7 @@
+import numpy as np
+import torch
+import random
+
 from torch.utils.data import DataLoader
 from torch.utils.data.dataloader import default_collate
 from tensorboardX import SummaryWriter
@@ -7,7 +11,7 @@ from .utils import CheckpointSaver
 
 
 class Executor(object):
-    def __init__(self, name, model, dataset, opts):
+    def __init__(self, name, model, dataset, opts, random_seed=7):
         """
         Args:
             model: model opts
@@ -20,6 +24,8 @@ class Executor(object):
 
         self.writer = SummaryWriter('runs/{}'.format(self.name))
         self.saver = CheckpointSaver('ckpt/{}'.format(self.name))
+
+        self.set_seed(random_seed)
 
     def create_model(self, state_dict=None):
         if state_dict is not None:
@@ -41,3 +47,10 @@ class Executor(object):
                           shuffle=shuffle,
                           num_workers=4,
                           collate_fn=collate_fn)
+
+    def set_seed(self, seed):
+        torch.manual_seed(seed)  # cpu
+        torch.cuda.manual_seed(seed)  # gpu
+        np.random.seed(seed)  # numpy
+        random.seed(seed)  # random and transforms
+        torch.backends.cudnn.deterministic = True  # cudnn

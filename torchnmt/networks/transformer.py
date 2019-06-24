@@ -51,7 +51,10 @@ class Transformer(nn.Module):
 
             chopped_outputs = outputs[:, :-1].reshape(-1, outputs.shape[-1])
             shifted_targets = tgt[:, 1:].reshape(-1)
-            loss = F.cross_entropy(chopped_outputs, shifted_targets)
+
+            loss = F.cross_entropy(chopped_outputs,
+                                   shifted_targets,
+                                   ignore_index=pad)
 
             return {
                 'logp': logp,

@@ -20,11 +20,10 @@ def strip_config(path):
     return path
 
 
+assert os.path.exists(args.src)
+
 args.src = strip_config(args.src)
 args.dst = strip_config(args.dst)
-
-
-assert os.path.exists(os.path.join('config', args.src))
 
 
 def remove_empty_dir_along(src):

@@ -1,7 +1,6 @@
 import os
 import sys
 import argparse
-import torch
 import shutil
 from functools import partial
 
@@ -29,7 +28,7 @@ def remove_empty_dir_along(src):
     if not src:
         return
     if not os.listdir(src):
-        os.remove(src)
+        os.rmdir(src)
     remove_empty_dir_along(os.path.dirname(src))
 
 

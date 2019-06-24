@@ -16,6 +16,7 @@ def strip_config(path):
     config = 'config' + os.path.sep
     if path[:7] == config:
         path = path.replace(config, '', 1)
+    path = os.path.splitext(path)[0]
     return path
 
 
@@ -46,9 +47,9 @@ def move(base, src, dst):
         print('{} does not exist.'.format(src))
 
 
-rename = partial(move, src=args.src, dst=args.dst)
+move_base = partial(move, src=args.src, dst=args.dst)
 
-rename('results')
-rename('ckpt')
-rename('runs')
-rename('config')
+move_base('results')
+move_base('ckpt')
+move_base('runs')
+move_base('config')

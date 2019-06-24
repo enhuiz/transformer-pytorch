@@ -18,6 +18,7 @@ def get_args():
 def main():
     args = get_args()
     opts = parse_config(args.config)
+    print(opts)
     trainer = executors.get(opts, opts.train)
     trainer.start()
 

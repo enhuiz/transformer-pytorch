@@ -28,14 +28,11 @@ model:
 train:
   proto: NMTTrainer
   device: cuda
-  lr: 0.01
+  lr: 0.001
   batch_size: 8
   epochs: 50
   continued: true
-  save_every: 10
-  splits:
-    train: "train"
-    val: "val"
+  save_every: 5
 
 test:
   proto: NMTTester

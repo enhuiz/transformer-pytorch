@@ -30,10 +30,7 @@ train:
   batch_size: 8
   epochs: 50
   continued: true
-  save_every: 10
-  splits:
-    train: "train"
-    val: "val"
+  save_every: 5
 
 test:
   proto: NMTTester

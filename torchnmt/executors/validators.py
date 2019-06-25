@@ -13,6 +13,7 @@ from torchnmt.scores import compute_scores
 class Validator(Executor):
     def __init__(self, opts):
         super().__init__(opts)
+        self.model = self.create_model().train()  # don't inference
 
     def epoch_iter(self):
         ckpts = sorted(self.saver.get_all_ckpts('epoch').items())
@@ -53,9 +54,10 @@ class NMTValidator(Validator):
         if os.path.exists(self.out_path):
             return self.skip_epoch()
 
-        if not hasattr(self, 'model') or self.model.ckpt != self.ckpt:
-            self.model = self.create_model(self.ckpt).train()
+        if not hasattr(self.model, 'ckpt') or self.model.ckpt != self.ckpt:
+            self.model.load_state_dict(torch.load(self.ckpt))
             self.model.ckpt = self.ckpt
+            print('ckpt {} loaded'.format(self.ckpt))
 
         self.losses = []
 

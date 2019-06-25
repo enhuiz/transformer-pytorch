@@ -36,7 +36,7 @@ class Multi30kDataset(NMTDataset):
 
     def load_file(self, path):
         with open(path, 'r') as f:
-            content = f.read()
+            content = f.read().strip()
         table = str.maketrans(dict.fromkeys(
             string.punctuation + string.digits + "“”"))
         return [s.strip().translate(table).lower().split()

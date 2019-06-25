@@ -45,4 +45,4 @@ test:
   beam_width: 5
   splits: [val, test]
   max_len: 52
-  mode: top-1
+  mode: best

@@ -51,6 +51,7 @@ def edit_similarity(refs, hyps):
 
 
 def compute_scores(refs, hyps):
+    assert len(refs) == len(hyps)
     scores = {
         "BLEU-4": bleu_score(refs, hyps) * 100,
         "EM": exact_match_score(refs, hyps) * 100,

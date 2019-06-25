@@ -65,13 +65,13 @@ class Executor(object):
         raise NotImplementedError()
 
     def on_epoch_start(self):
-        pass
+        return
 
     def on_epoch_end(self):
-        pass
+        return
 
     def on_iteration_start(self):
-        pass
+        return
 
     def on_iteration_end(self):
-        pass
+        return

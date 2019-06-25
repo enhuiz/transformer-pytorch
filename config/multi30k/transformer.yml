@@ -36,7 +36,7 @@ test:
   proto: NMTTester
   device: cuda
   batch_size: 32
-  beam_width: 1
+  beam_width: 5
   splits: [val, test]
   max_len: 52
-  all: false
+  all: true

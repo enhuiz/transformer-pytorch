@@ -38,26 +38,28 @@ class Trainer(Executor):
         model = super().create_model(state_dict)
         return model, epoch0
 
+    def done(self):
+        return self.epoch >= self.opts.epochs
+
     def start(self):
         self.lr = self.opts.lr
         self.dl = self.create_data_loader('train', shuffle=True)
         self.model, self.epoch = self.create_model()
         self.optimizer = self.create_optimizer()
-        self.iteration = self.epoch * len(self.dl) + 1
+        self.iteration = (self.epoch - 1) * len(self.dl) + 1
         self.model.train()
         super().start()
 
     def on_iteration_end(self):
         self.writer.add_scalar('batch-loss', self.loss, self.iteration)
+        self.log()
         self.iteration += 1
-        super().on_iteration_end()
 
     def on_epoch_end(self):
         if self.epoch % self.opts.save_every == 0:
             self.saver.save('epoch', self.model.state_dict(), self.epoch)
         self.update_lr()
         self.epoch += 1
-        super().on_epoch_end()
 
     def update_lr(self):
         lr = self.opts.lr * 0.95 ** (self.epoch // 2)
@@ -95,7 +97,7 @@ class NMTTrainer(Trainer):
         self.losses.append(self.loss)
 
     def on_iteration_end(self):
-        self.writer.add_scalar('batch-ppl', self.ppl, self.epoch)
+        self.writer.add_scalar('batch-ppl', self.ppl, self.iteration)
         super().on_iteration_end()
 
     def on_epoch_end(self):

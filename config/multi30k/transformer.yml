@@ -26,17 +26,17 @@ model:
 train:
   proto: NMTTrainer
   device: cuda
-  lr: 0.001
-  batch_size: 8
-  epochs: 50
+  lr: 0.0001
+  batch_size: 16
+  epochs: 10
   continued: true
-  save_every: 5
+  save_every: 1
 
 test:
   proto: NMTTester
   device: cuda
-  batch_size: 32
+  batch_size: 16
   beam_width: 5
   splits: [val, test]
   max_len: 52
-  all: true
+  every: 1

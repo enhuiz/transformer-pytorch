@@ -19,10 +19,8 @@ class Tester(Executor):
         super().start()
 
     def create_epoch_iter(self):
-        if self.opts.all:
-            ckpts = self.saver.get_all_ckpts('epoch')
-        else:
-            ckpts = [self.saver.get_latest_ckpt('epoch')]
+        ckpts = self.saver.get_all_ckpts('epoch')
+        ckpts = ckpts[self.opts.every - 1::self.opts.every]
 
         ckpts = [(self.saver.parse_step(ckpt), ckpt)
                  for ckpt in ckpts]
@@ -70,6 +68,7 @@ class NMTTester(Tester):
         refs = unpack_packed_sequence(batch['tgt'])
         with torch.no_grad():
             out = self.model(**batch, **vars(self.opts))
+
         hyps = out['hyps']
         self.refs += refs
         self.hyps += hyps

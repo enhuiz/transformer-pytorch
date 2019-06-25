@@ -48,9 +48,6 @@ class Executor(object):
         random.seed(seed)  # random and transforms
         torch.backends.cudnn.deterministic = True  # cudnn
 
-    def done(self):
-        return self.epoch >= self.opts.epochs
-
     def start(self):
         while not self.done():
             self.on_epoch_start()
@@ -60,6 +57,12 @@ class Executor(object):
                 self.update(batch)
                 self.on_iteration_end()
             self.on_epoch_end()
+
+    def done(self):
+        raise NotImplementedError()
+
+    def update(self):
+        raise NotImplementedError()
 
     def on_epoch_start(self):
         pass
@@ -71,10 +74,4 @@ class Executor(object):
         pass
 
     def on_iteration_end(self):
-        self.log()
-
-    def update(self, batch):
-        pass
-
-    def log(self):
         pass

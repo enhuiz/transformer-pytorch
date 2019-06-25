@@ -1,7 +1,5 @@
 # TorchNMT
 
-## Introduction
-
 A simple implementation of the neural machine translation framework using pytorch.
 
 ## Models
@@ -14,7 +12,7 @@ A simple implementation of the neural machine translation framework using pytorc
 
 - **Multi30K (En-De)**: WMT'17 Multimodal Translation task (En-De) (https://www.statmt.org/wmt17/multimodal-task.html).
 
-## Example
+## Usage
 
 ### Prerequisites
 

@@ -1,8 +1,8 @@
 dataset:
   proto: XiaoshiDataset
   root: data/xiaoshi
-  src: org
-  tgt: tra
+  src: po
+  tgt: zh
   vocab_share: true
 
 model:

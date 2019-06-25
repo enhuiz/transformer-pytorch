@@ -31,8 +31,8 @@ class XiaoshiDataset(NMTDataset):
                 return h, t
 
             def save(df, split):
-                df['trans'].to_csv(split + '.tra', header=False, index=False)
-                df['origin'].to_csv(split + '.org', header=False, index=False)
+                df['trans'].to_csv(split + '.zh', header=False, index=False)
+                df['origin'].to_csv(split + '.po', header=False, index=False)
 
             df = pd.read_csv('raw.csv')
             train_df, val_df = split(df, 0.9)

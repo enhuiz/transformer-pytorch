@@ -1,6 +1,7 @@
 import os
 import glob
 import torch
+from typing import Dict, Tuple
 
 
 class CheckpointSaver(object):
@@ -13,23 +14,17 @@ class CheckpointSaver(object):
         torch.save(model, path)
         print('{} saved.'.format(path))
 
-    def get_all_ckpts(self, tag):
-        return sorted(glob.glob(os.path.join(self.root, '{}/*.pth'.format(tag))), key=self.parse_step)
+    def get_all_ckpts(self, tag) -> Dict[int, str]:
+        ckpts = {self.parse_step(path): path for path in glob.glob(
+            os.path.join(self.root, '{}/*.pth'.format(tag)))}
+        return ckpts
 
-    def get_latest_ckpt(self, tag):
+    def get_latest_ckpt(self, tag) -> Tuple[int, str]:
         ckpts = self.get_all_ckpts(tag)
-        if len(ckpts) > 0:
-            return max(ckpts, key=self.parse_step)
-        else:
-            return None
-
-    def get_latest_step(self, tag) -> int:
-        return self.parse_step(self.get_latest_ckpt(tag))
+        if not len(ckpts):
+            raise Exception("No ckpts found.")
+        return max(ckpts.items())
 
     def parse_step(self, path: str) -> int:
-        step = None
-        try:
-            step = int(path.split(os.path.sep)[-1].replace('.pth', ''))
-        except:
-            pass
+        step = int(path.split(os.path.sep)[-1].replace('.pth', ''))
         return step

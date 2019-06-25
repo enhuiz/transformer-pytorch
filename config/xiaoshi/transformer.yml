@@ -30,9 +30,16 @@ train:
   device: cuda
   lr: 0.0001
   batch_size: 16
-  epochs: 30
+  epochs: 20
   continued: true
   save_every: 1
+
+validate:
+  proto: NMTValidator
+  device: cuda
+  batch_size: 16
+  every: 1
+  splits: [val]
 
 test:
   proto: NMTTester
@@ -41,4 +48,4 @@ test:
   beam_width: 5
   splits: [val]
   max_len: 100
-  every: 1
+  mode: top-1

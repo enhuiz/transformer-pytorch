@@ -3,16 +3,14 @@ import copy
 from torchnmt.utils import get_class, get_kwargs
 from .trainers import NMTTrainer
 from .testers import NMTTester
+from .validators import NMTValidator
 
 
-def get(opts, train=False):
+def get(opts, mode):
     opts = copy.deepcopy(opts)
-    if train:
-        exec_ops = opts.train
-    else:
-        exec_ops = opts.test
-    exec_ops.name = opts.name
-    exec_ops.dataset = opts.dataset
-    exec_ops.model = opts.model
-    c = get_class([NMTTrainer, NMTTester], exec_ops.proto)
-    return c(**get_kwargs(c, opts), opts=exec_ops)
+    exec_opts = getattr(opts, mode)
+    exec_opts.name = opts.name
+    exec_opts.dataset = opts.dataset
+    exec_opts.model = opts.model
+    c = get_class([NMTTrainer, NMTTester, NMTValidator], exec_opts.proto)
+    return c(**get_kwargs(c, opts), opts=exec_opts)

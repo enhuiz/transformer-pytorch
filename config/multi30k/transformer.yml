@@ -32,6 +32,12 @@ train:
   continued: true
   save_every: 1
 
+validate:
+  proto: NMTValidator
+  device: cuda
+  batch_size: 16
+  splits: [val, test]
+
 test:
   proto: NMTTester
   device: cuda
@@ -39,4 +45,4 @@ test:
   beam_width: 5
   splits: [val, test]
   max_len: 52
-  every: 1
+  mode: top-1

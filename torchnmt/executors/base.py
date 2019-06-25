@@ -11,6 +11,14 @@ from torchnmt import networks, datasets
 from .utils import CheckpointSaver
 
 
+class EpochSkipper(Exception):
+    pass
+
+
+class IterationSkipper(Exception):
+    pass
+
+
 class Executor(object):
     def __init__(self, opts, random_seed=7):
         self.opts = opts
@@ -50,15 +58,51 @@ class Executor(object):
 
     def start(self):
         while not self.done():
-            self.on_epoch_start()
-            self.pbar = tqdm.tqdm(self.dl, total=len(self.dl))
-            for batch in self.pbar:
-                self.on_iteration_start()
-                self.update(batch)
-                self.on_iteration_end()
-            self.on_epoch_end()
+            try:
+                self.on_epoch_start()
+                self.pbar = tqdm.tqdm(self.dl, total=len(self.dl))
+                for batch in self.pbar:
+                    try:
+                        self.on_iteration_start()
+                        self.update(batch)
+                        self.on_iteration_end()
+                    except IterationSkipper:
+                        continue
+                self.on_epoch_end()
+            except EpochSkipper:
+                continue
 
-    def done(self):
+    def start(self):
+        for _ in self.epoch_iter():
+            try:
+                self.on_epoch_start()
+                for _ in self.iteration_iter():
+                    try:
+                        self.on_iteration_start()
+                        self.update()
+                        self.on_iteration_end()
+                    except IterationSkipper:
+                        continue
+                self.on_epoch_end()
+            except EpochSkipper:
+                continue
+
+    def skip_epoch(self):
+        """
+        Skip the current epoch.
+        """
+        raise EpochSkipper()
+
+    def skip_iteration(self):
+        """
+        Skip the current iteration.
+        """
+        raise IterationSkipper()
+
+    def epoch_iter(self):
+        raise NotImplementedError()
+
+    def iteration_iter(self):
         raise NotImplementedError()
 
     def update(self):

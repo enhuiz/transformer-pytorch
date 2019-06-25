@@ -28,23 +28,30 @@ class Trainer(Executor):
         return optimizer
 
     def create_model(self):
-        epoch0 = 1
-        state_dict = None
+        epoch0, state_dict = (1, None)
         if self.opts.continued:
-            ckpt = self.saver.get_latest_ckpt('epoch')
-            if ckpt is not None:
-                state_dict = ckpt
-                epoch0 = self.saver.get_latest_step('epoch') + 1
+            try:
+                epoch0, state_dict = self.saver.get_latest_ckpt('epoch')
+                epoch0 += 1  # start from next epoch
+            except:
+                pass
         model = super().create_model(state_dict)
-        return model, epoch0
+        return epoch0, model
 
-    def done(self):
-        return self.epoch >= self.opts.epochs
+    def epoch_iter(self):
+        for self.epoch in range(self.opts.epochs):
+            yield
+
+    def iteration_iter(self):
+        self.pbar = tqdm.tqdm(self.dl, total=len(self.dl))
+        for batch in self.pbar:
+            self.batch = batch
+            yield
 
     def start(self):
         self.lr = self.opts.lr
         self.dl = self.create_data_loader('train', shuffle=True)
-        self.model, self.epoch = self.create_model()
+        self.epoch, self.model = self.create_model()
         self.optimizer = self.create_optimizer()
         self.iteration = (self.epoch - 1) * len(self.dl) + 1
         self.model.train()
@@ -85,9 +92,8 @@ class NMTTrainer(Trainer):
 
         self.losses = []
 
-    def update(self, batch):
-        loss = self.model(**batch,
-                          **vars(self.opts))['loss']
+    def update(self):
+        loss = self.model(**self.batch, **vars(self.opts))['loss']
         loss.backward()
         self.optimizer.step()
         self.optimizer.zero_grad()
@@ -110,6 +116,7 @@ class NMTTrainer(Trainer):
 
         self.writer.add_scalar('loss', loss, self.epoch)
         self.writer.add_scalar('ppl', ppl, self.epoch)
+        self.writer.flush()  # requires: https://github.com/lanpa/tensorboardX/pull/451
 
         super().on_epoch_end()
 

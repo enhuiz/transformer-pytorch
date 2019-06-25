@@ -2,6 +2,7 @@ import os
 import tqdm
 import numpy as np
 import pandas as pd
+import glob
 
 import torch
 
@@ -14,45 +15,56 @@ class Tester(Executor):
     def __init__(self, opts):
         super().__init__(opts)
 
-    def start(self):
-        self.epoch_iter = self.create_epoch_iter()
-        super().start()
+    def extract_val_loss(self, path):
+        epoch = int(path.split(os.path.sep)[-3])
+        with open(path, 'r') as f:
+            loss = eval(f.read())['loss']
+        return epoch, loss
 
-    def create_epoch_iter(self):
+    def prepare_ckpts(self):
         ckpts = self.saver.get_all_ckpts('epoch')
-        ckpts = ckpts[self.opts.every - 1::self.opts.every]
+        if self.opts.mode == 'all':
+            ckpts = sorted(ckpts.items())
+        elif 'every-' in self.opts.mode:
+            n = int(self.opts.mode.split('-')[1])
+            ckpts = [(e, ckpts[e])
+                     for e in range(n, len(ckpts) + 1, n)]
+        elif 'top-' in self.opts.mode:
+            n = int(self.opts.mode.split('-')[1])
+            paths = glob.glob(os.path.join(
+                'results', self.opts.name, '**/val/val.txt'))
+            if not paths:
+                msg = 'results/{}/**/{}/val.txt not found'.format(
+                    self.opts.name)
+                raise Exception(msg)
+            tops = sorted(map(self.extract_val_loss, paths),
+                          key=lambda kv: kv[1])[:n]
+            ckpts = [(e, ckpts[e]) for e, _ in tops]
+        else:
+            raise Exception('Unknown test mode: {}'.format(self.opts.mode))
+        return ckpts
 
-        ckpts = [(self.saver.parse_step(ckpt), ckpt)
-                 for ckpt in ckpts]
+    def epoch_iter(self):
+        ckpts = self.prepare_ckpts()
 
         splits = [(split,
-                   self.create_data_loader(split),
-                   self.create_writer(split + '*'))
+                   self.create_data_loader(split))
                   for split in self.opts.splits]
 
         for epoch, ckpt in ckpts:
-            model = None
-            for split, dl, writer in splits:
-                outdir = os.path.join('results',
-                                      self.opts.name,
-                                      str(epoch),
-                                      split)
-                if not os.path.exists(outdir):
-                    print('Evaluating {} ...'.format(outdir))
-                    model = model or self.create_model(ckpt)
-                    self.epoch = epoch
-                    self.outdir = outdir
-                    self.dl = dl
-                    self.model = model.eval()
-                    self.writer = writer
-                    yield
+            for split, dl in splits:
+                print('Testing epoch {}, split: {} ...'.format(epoch, split))
+                self.epoch = epoch
+                self.split = split
+                self.dl = dl
+                self.ckpt = ckpt
+                yield
 
-    def done(self):
-        try:
-            next(self.epoch_iter)
-            return False
-        except:
-            return True
+    def iteration_iter(self):
+        self.pbar = tqdm.tqdm(self.dl, total=len(self.dl))
+        for batch in self.pbar:
+            self.batch = batch
+            yield
 
 
 class NMTTester(Tester):
@@ -60,22 +72,28 @@ class NMTTester(Tester):
         super().__init__(opts)
 
     def on_epoch_start(self):
+        self.out_dir = os.path.join('results',
+                                    self.opts.name,
+                                    str(self.epoch),
+                                    self.split)
+
+        if os.path.exists(os.path.join(self.out_dir, 'refs.txt')):
+            print('{} exists, skip.'.format(self.out_dir))
+            return self.skip_epoch()
+
         self.refs = []
         self.hyps = []
-        self.losses = []
 
-    def update(self, batch):
-        refs = unpack_packed_sequence(batch['tgt'])
+        if not hasattr(self, 'model') or self.model.ckpt != self.ckpt:
+            self.model = self.create_model(self.ckpt).eval()
+            self.model.ckpt = self.ckpt
+
+    def update(self):
+        refs = unpack_packed_sequence(self.batch['tgt'])
         with torch.no_grad():
-            out = self.model(**batch, **vars(self.opts))
-
-        hyps = out['hyps']
+            hyps = self.model(**self.batch, **vars(self.opts))['hyps']
         self.refs += refs
         self.hyps += hyps
-
-        if 'loss' in out:
-            loss = out['loss']
-            self.losses.append(loss.item())
 
     def on_epoch_end(self):
         vocab = self.dl.dataset.tgt_vocab
@@ -87,18 +105,10 @@ class NMTTester(Tester):
 
         scores = compute_scores(refs, hyps)
 
-        if self.losses:
-            loss = np.mean(self.losses)
-            ppl = np.exp(loss)
-            scores['loss'] = loss
-            scores['ppl'] = ppl
-            self.writer.add_scalar('loss', loss, self.epoch)
-            self.writer.add_scalar('ppl', ppl, self.epoch)
-
         print(scores)
 
-        os.makedirs(self.outdir, exist_ok=True)
-        base = os.path.join(self.outdir, '{}')
+        os.makedirs(self.out_dir, exist_ok=True)
+        base = os.path.join(self.out_dir, '{}')
 
         with open(base.format('scores.txt'), 'w') as f:
             f.write(str(scores))
@@ -106,10 +116,8 @@ class NMTTester(Tester):
         refs = list(map(' '.join, refs))
         hyps = list(map(' '.join, hyps))
 
-        df = pd.DataFrame({'refs': refs, 'hyps': hyps})
+        with open(base.format('refs.txt'), 'w') as f:
+            f.write('\n'.join(refs))
 
-        df['refs'].to_csv(base.format('refs.txt'),
-                          header=False, index=False)
-
-        df['hyps'].to_csv(base.format('hyps.txt'),
-                          header=False, index=False)
+        with open(base.format('hyps.txt'), 'w') as f:
+            f.write('\n'.join(hyps))

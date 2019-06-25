@@ -19,8 +19,8 @@ def main():
     args = get_args()
     opts = parse_config(args.config)
     print(opts)
-    trainer = executors.get(opts, 'train')
-    trainer.start()
+    validator = executors.get(opts, 'validate')
+    validator.start()
 
 
 if __name__ == "__main__":

@@ -1,8 +1,8 @@
 dataset:
   proto: Multi30kDataset
   root: data/multi30k
-  src: de.atok
-  tgt: en.atok
+  src: en.atok
+  tgt: de.atok
 
 model:
   proto: Transformer
@@ -13,7 +13,7 @@ model:
     ffn_dim: 2048
     layers: 6
     heads: 8
-    vocab_size: 17831 # de
+    vocab_size: 9690 # en
 
   decoder:
     proto: TransformerDecoder
@@ -21,7 +21,7 @@ model:
     ffn_dim: 2048
     layers: 6
     heads: 8
-    vocab_size: 9690 # en
+    vocab_size: 17831 # de
 
 train:
   proto: NMTTrainer

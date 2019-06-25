@@ -20,7 +20,7 @@ class Validator(Executor):
 
         splits = [(split,
                    self.create_data_loader(split),
-                   self.create_writer(split + '(testing)'))
+                   self.create_writer(split))
                   for split in self.opts.splits]
 
         for epoch, ckpt in ckpts:

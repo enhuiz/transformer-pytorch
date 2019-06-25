@@ -1,0 +1,51 @@
+dataset:
+  proto: XiaoshiDataset
+  root: data/xiaoshi
+  src: tra
+  tgt: org
+  vocab_share: true
+
+model:
+  proto: Transformer
+  vocab_share: true
+
+  encoder:
+    proto: TransformerEncoder
+    model_dim: 512
+    ffn_dim: 2048
+    layers: 6
+    heads: 8
+    vocab_size: 4104
+
+  decoder:
+    proto: TransformerDecoder
+    model_dim: 512
+    ffn_dim: 2048
+    layers: 6
+    heads: 8
+    vocab_size: 4104
+
+train:
+  proto: NMTTrainer
+  device: cuda
+  lr: 0.0001
+  batch_size: 16
+  epochs: 30
+  continued: true
+  save_every: 1
+
+validate:
+  proto: NMTValidator
+  device: cuda
+  batch_size: 16
+  every: 1
+  splits: [val]
+
+test:
+  proto: NMTTester
+  device: cuda
+  batch_size: 16
+  beam_width: 5
+  splits: [val]
+  max_len: 100
+  mode: latest

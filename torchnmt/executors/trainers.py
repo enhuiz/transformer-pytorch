@@ -39,7 +39,13 @@ class Trainer(Executor):
         return epoch0, model
 
     def epoch_iter(self):
-        for self.epoch in range(self.opts.epochs):
+        epoch0, self.model = self.create_model()
+        self.model.train()
+        self.lr = self.opts.lr
+        self.dl = self.create_data_loader('train', shuffle=True)
+        self.optimizer = self.create_optimizer()
+        self.iteration = (epoch0 - 1) * len(self.dl) + 1
+        for self.epoch in range(epoch0, self.opts.epochs + 1):
             yield
 
     def iteration_iter(self):
@@ -47,26 +53,16 @@ class Trainer(Executor):
         for batch in self.pbar:
             self.batch = batch
             yield
-
-    def start(self):
-        self.lr = self.opts.lr
-        self.dl = self.create_data_loader('train', shuffle=True)
-        self.epoch, self.model = self.create_model()
-        self.optimizer = self.create_optimizer()
-        self.iteration = (self.epoch - 1) * len(self.dl) + 1
-        self.model.train()
-        super().start()
+            self.iteration += 1
 
     def on_iteration_end(self):
         self.writer.add_scalar('batch-loss', self.loss, self.iteration)
         self.log()
-        self.iteration += 1
 
     def on_epoch_end(self):
         if self.epoch % self.opts.save_every == 0:
             self.saver.save('epoch', self.model.state_dict(), self.epoch)
         self.update_lr()
-        self.epoch += 1
 
     def update_lr(self):
         lr = self.opts.lr * 0.95 ** (self.epoch // 2)

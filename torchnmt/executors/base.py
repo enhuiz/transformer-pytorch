@@ -57,22 +57,6 @@ class Executor(object):
         torch.backends.cudnn.deterministic = True  # cudnn
 
     def start(self):
-        while not self.done():
-            try:
-                self.on_epoch_start()
-                self.pbar = tqdm.tqdm(self.dl, total=len(self.dl))
-                for batch in self.pbar:
-                    try:
-                        self.on_iteration_start()
-                        self.update(batch)
-                        self.on_iteration_end()
-                    except IterationSkipper:
-                        continue
-                self.on_epoch_end()
-            except EpochSkipper:
-                continue
-
-    def start(self):
         for _ in self.epoch_iter():
             try:
                 self.on_epoch_start()

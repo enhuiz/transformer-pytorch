@@ -5,7 +5,14 @@ from .trainers import NMTTrainer
 from .testers import NMTTester
 
 
-def get(opts, executor_ops):
+def get(opts, train=False):
     opts = copy.deepcopy(opts)
-    c = get_class([NMTTrainer, NMTTester], executor_ops.proto)
-    return c(**get_kwargs(c, opts), opts=executor_ops)
+    if train:
+        exec_ops = opts.train
+    else:
+        exec_ops = opts.test
+    exec_ops.name = opts.name
+    exec_ops.dataset = opts.dataset
+    exec_ops.model = opts.model
+    c = get_class([NMTTrainer, NMTTester], exec_ops.proto)
+    return c(**get_kwargs(c, opts), opts=exec_ops)

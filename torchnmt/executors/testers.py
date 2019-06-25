@@ -11,73 +11,104 @@ from torchnmt.scores import compute_scores
 
 
 class Tester(Executor):
-    def __init__(self, name, model, dataset, opts):
-        super().__init__(name, model, dataset, opts)
+    def __init__(self, opts):
+        super().__init__(opts)
 
     def start(self):
+        self.epoch_iter = self.create_epoch_iter()
+        super().start()
+
+    def create_epoch_iter(self):
         if self.opts.all:
             ckpts = self.saver.get_all_ckpts('epoch')
         else:
             ckpts = [self.saver.get_latest_ckpt('epoch')]
 
-        dls = {sp: self.create_data_loader(sp) for sp in self.opts.splits}
+        ckpts = [(self.saver.parse_step(ckpt), ckpt)
+                 for ckpt in ckpts]
 
-        for ckpt in ckpts:
-            epoch = self.saver.parse_step(ckpt)
-            model = None  # lazy loading
-            for split in self.opts.splits:
-                folder = os.path.join('results', self.name, str(epoch), split)
-                if not os.path.exists(folder):
+        dataloaders = [(sp, self.create_data_loader(sp))
+                       for sp in self.opts.splits]
+
+        for epoch, ckpt in ckpts:
+            model = None
+            for split, dl in dataloaders:
+                outdir = os.path.join(
+                    'results', self.opts.name, str(epoch), split)
+                if not os.path.exists(outdir):
+                    print('Evaluating {} ...'.format(outdir))
                     model = model or self.create_model(ckpt)
-                    os.makedirs(folder, exist_ok=True)
-                    self.evaluate(model, dls[split], folder)
+                    self.epoch = epoch
+                    self.outdir = outdir
+                    self.dl = dl
+                    self.model = model.eval()
+                    self.split = split
+                    yield
 
-    def evaluate(self, model, dl, folder):
-        raise NotImplementedError()
+    def done(self):
+        try:
+            next(self.epoch_iter)
+            return False
+        except:
+            return True
 
 
 class NMTTester(Tester):
-    def __init__(self, name, model, dataset, opts):
-        super().__init__(name, model, dataset, opts)
+    def __init__(self, opts):
+        super().__init__(opts)
 
-    def evaluate(self, model, dl, folder):
-        print('Evaluating {} ...'.format(folder))
-        model = model.eval()
-        vocab = dl.dataset.tgt_vocab
+    def on_epoch_start(self):
+        self.refs = []
+        self.hyps = []
+        self.losses = []
 
-        refs, hyps = [], []
-        losses = []
-        for batch in tqdm.tqdm(dl, total=len(dl)):
-            batch_refs = unpack_packed_sequence(batch['tgt'])
-            with torch.no_grad():
-                out = model(**batch, **vars(self.opts))
-                batch_hyps = out['hyps']
-                loss = out['loss']
-                losses.append(loss.item())
+    def update(self, batch):
+        refs = unpack_packed_sequence(batch['tgt'])
+        with torch.no_grad():
+            out = self.model(**batch, **vars(self.opts))
+        hyps = out['hyps']
+        self.refs += refs
+        self.hyps += hyps
 
-            refs += [vocab.strip_beos_w(vocab.idxs2words(ref))
-                     for ref in batch_refs]
-            hyps += [vocab.strip_beos_w(vocab.idxs2words(hyp))
-                     for hyp in batch_hyps]
+        if 'loss' in out:
+            loss = out['loss']
+            self.losses.append(loss.item())
+
+    def on_epoch_end(self):
+        vocab = self.dl.dataset.tgt_vocab
+
+        refs = [vocab.strip_beos_w(vocab.idxs2words(ref))
+                for ref in self.refs]
+        hyps = [vocab.strip_beos_w(vocab.idxs2words(hyp))
+                for hyp in self.hyps]
+
+        scores = compute_scores(refs, hyps)
+
+        if self.losses:
+            loss = np.mean(self.losses)
+            ppl = np.exp(loss)
+            scores['loss'] = loss
+            scores['ppl'] = ppl
+            self.writer.add_scalar('epoch_{}_loss'.format(self.split),
+                                   loss, self.epoch)
+            self.writer.add_scalar('epoch_{}_ppl'.format(self.split),
+                                   ppl, self.epoch)
+
+        print(scores)
+
+        os.makedirs(self.outdir, exist_ok=True)
+        base = os.path.join(self.outdir, '{}')
+
+        with open(base.format('scores.txt'), 'w') as f:
+            f.write(str(scores))
 
         refs = list(map(' '.join, refs))
         hyps = list(map(' '.join, hyps))
 
         df = pd.DataFrame({'refs': refs, 'hyps': hyps})
 
-        pathbase = os.path.join(folder, '{}')
-
-        scores = compute_scores(refs, hyps)
-        scores['loss'] = np.mean(losses)
-        scores['ppl'] = np.exp(scores['loss'])
-
-        with open(pathbase.format('scores.txt'), 'w') as f:
-            f.write(str(scores))
-
-        print(scores)
-
-        df['refs'].to_csv(pathbase.format('refs.txt'),
+        df['refs'].to_csv(base.format('refs.txt'),
                           header=False, index=False)
 
-        df['hyps'].to_csv(pathbase.format('hyps.txt'),
+        df['hyps'].to_csv(base.format('hyps.txt'),
                           header=False, index=False)

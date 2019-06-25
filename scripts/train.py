@@ -19,7 +19,7 @@ def main():
     args = get_args()
     opts = parse_config(args.config)
     print(opts)
-    trainer = executors.get(opts, opts.train)
+    trainer = executors.get(opts, True)
     trainer.start()
 
 

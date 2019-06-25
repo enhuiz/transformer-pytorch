@@ -11,6 +11,7 @@ class CheckpointSaver(object):
         path = os.path.join(self.root, '{}/{}.pth'.format(tag, global_step))
         os.makedirs(os.path.dirname(path), exist_ok=True)
         torch.save(model, path)
+        print('{} saved.'.format(path))
 
     def get_all_ckpts(self, tag):
         return sorted(glob.glob(os.path.join(self.root, '{}/*.pth'.format(tag))), key=self.parse_step)

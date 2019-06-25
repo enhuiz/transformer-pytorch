@@ -19,7 +19,7 @@ def main():
     args = get_args()
     opts = parse_config(args.config)
     print(opts)
-    tester = executors.get(opts, opts.test)
+    tester = executors.get(opts, False)
     tester.start()
 
 

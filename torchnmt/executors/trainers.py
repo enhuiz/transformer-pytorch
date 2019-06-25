@@ -6,20 +6,24 @@ from torchnmt.executors.base import Executor
 
 
 class Trainer(Executor):
-    def __init__(self, name, model, dataset, opts):
-        super().__init__(name, model, dataset, opts)
+    def __init__(self, opts):
+        super().__init__(opts)
 
-    def create_optimizer(self, params):
+    def create_optimizer(self):
         if hasattr(self.opts, 'optimizer'):
             optimizer = self.opts.optimizer
         else:
             optimizer = 'sgd'
+
+        params = self.model.parameters()
+
         if optimizer.lower() == 'sgd':
             optimizer = torch.optim.SGD(params, lr=self.opts.lr)
         elif optimizer.lower() == 'adam':
             optimizer = torch.optim.Adam(params, lr=self.opts.lr)
         else:
             raise Exception("Unknown optimizer {}.".format(optimizer))
+
         return optimizer
 
     def create_model(self):
@@ -35,28 +39,22 @@ class Trainer(Executor):
 
     def start(self):
         self.lr = self.opts.lr
-        self.dl = self.create_data_loader(self.opts.splits.train, shuffle=True)
+        self.dl = self.create_data_loader('train', shuffle=True)
         self.model, self.epoch = self.create_model()
         self.optimizer = self.create_optimizer()
         self.iteration = self.epoch * len(self.dl) + 1
-
         self.model.train()
-        while self.epoch <= self.opts.epochs:
-            self.pbar = tqdm.tqdm(self.dl, total=len(self.dl))
-            for batch in self.pbar:
-                self.update(batch)
-                self.on_iteration_end()
-                self.iteration += 1
-            self.on_epoch_end()
-            self.epoch += 1
+        super().start()
 
     def on_iteration_end(self):
         self.writer.add_scalar('loss', self.loss, self.iteration)
+        self.iteration += 1
 
     def on_epoch_end(self):
         if self.epoch % self.opts.save_every == 0:
             self.saver.save('epoch', self.model.state_dict(), self.epoch)
         self.update_lr()
+        self.epoch += 1
 
     def update_lr(self):
         lr = self.opts.lr * 0.95 ** (self.epoch // 2)
@@ -70,14 +68,17 @@ class Trainer(Executor):
             'lr: {:.4g}'.format(self.lr),
             'loss: {:.4g}'.format(self.loss),
         ] + extra_items
-
         self.pbar.set_description(' '.join(items))
 
 
 class NMTTrainer(Trainer):
-    def __init__(self, name, model, dataset, opts):
-        super().__init__(name, model, dataset, opts)
-        self.losses = []  # global loss
+    def __init__(self, opts):
+        super().__init__(opts)
+
+    def on_epoch_start(self):
+        super().on_epoch_start()
+
+        self.losses = []
 
     def update(self, batch):
         loss = self.model(**batch,
@@ -91,24 +92,24 @@ class NMTTrainer(Trainer):
         self.losses.append(self.loss)
 
     def on_iteration_end(self):
-        super().on_iteration_end()
-        self.writer.add_scalar('ppl', self.ppl)
+        self.writer.add_scalar('ppl', self.ppl, self.epoch)
 
-    def log(self):
-        super().log([
-            'ppl: {:.4g}'.format(self.ppl),
-        ])
+        super().on_iteration_end()
 
     def on_epoch_end(self):
-        super().on_epoch_end()
-
         loss = np.mean(self.losses)
         ppl = np.exp(loss)
-        self.losses = []
 
         print('Epoch {}'.format(self.epoch))
         print('Train:\tloss: {:.4g}, ppl: {:.4g}'.format(loss,
                                                          ppl))
 
-        self.writer.add_scalar('epoch_loss', loss, self.epoch)
-        self.writer.add_scalar('epoch_ppl', ppl, self.epoch)
+        self.writer.add_scalar('epoch_train_loss', loss, self.epoch)
+        self.writer.add_scalar('epoch_train_ppl', ppl, self.epoch)
+
+        super().on_epoch_end()
+
+    def log(self):
+        super().log([
+            'ppl: {:.4g}'.format(self.ppl),
+        ])

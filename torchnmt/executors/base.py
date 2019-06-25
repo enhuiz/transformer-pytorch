@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 import random
+import tqdm
 
 from torch.utils.data import DataLoader
 from torch.utils.data.dataloader import default_collate
@@ -11,29 +12,19 @@ from .utils import CheckpointSaver
 
 
 class Executor(object):
-    def __init__(self, name, model, dataset, opts, random_seed=7):
-        """
-        Args:
-            model: model opts
-            dataset: dataset opts
-        """
-        self.name = name
-        self.model = model
-        self.dataset = dataset
+    def __init__(self, opts, random_seed=7):
         self.opts = opts
-
-        self.writer = SummaryWriter('runs/{}'.format(self.name))
-        self.saver = CheckpointSaver('ckpt/{}'.format(self.name))
-
+        self.writer = SummaryWriter('runs/{}'.format(self.opts.name))
+        self.saver = CheckpointSaver('ckpt/{}'.format(self.opts.name))
         self.set_seed(random_seed)
 
     def create_model(self, state_dict=None):
         if state_dict is not None:
-            self.model.state_dict = state_dict
-        return networks.get(self.model).to(self.opts.device)
+            self.opts.model.state_dict = state_dict
+        return networks.get(self.opts.model).to(self.opts.device)
 
     def create_dataset(self, split):
-        return datasets.get(self.dataset, split)
+        return datasets.get(self.opts.dataset, split)
 
     def create_data_loader(self, split, shuffle=False):
         dataset = self.create_dataset(split)
@@ -54,3 +45,31 @@ class Executor(object):
         np.random.seed(seed)  # numpy
         random.seed(seed)  # random and transforms
         torch.backends.cudnn.deterministic = True  # cudnn
+
+    def done(self):
+        return self.epoch >= self.opts.epochs
+
+    def start(self):
+        while not self.done():
+            self.on_epoch_start()
+            self.pbar = tqdm.tqdm(self.dl, total=len(self.dl))
+            for batch in self.pbar:
+                self.on_iteration_start()
+                self.update(batch)
+                self.on_iteration_end()
+            self.on_epoch_end()
+
+    def on_epoch_start(self):
+        pass
+
+    def on_epoch_end(self):
+        pass
+
+    def on_iteration_start(self):
+        pass
+
+    def on_iteration_end(self):
+        pass
+
+    def update(self, batch):
+        pass

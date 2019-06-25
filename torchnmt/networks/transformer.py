@@ -40,7 +40,9 @@ class Transformer(nn.Module):
         src_mask = self.padding_mask(src_len)
         mem = self.encoder(src, src_mask)
 
-        if self.training:
+        ret = {}
+
+        if tgt is not None:
             tgt, tgt_len = pad_packed_sequence(tgt, True, pad)
             tgt = tgt.to(self.device)
             tgt_mask = self.padding_mask(tgt_len) * \
@@ -56,11 +58,12 @@ class Transformer(nn.Module):
                                    shifted_targets,
                                    ignore_index=pad)
 
-            return {
+            ret.update({
                 'logp': logp,
                 'loss': loss
-            }
-        else:
+            })
+
+        if not self.training:
             # time step
             # inputs: hyps (bs, len), mem, mem_mask
             if beam_width == 1:
@@ -69,9 +72,11 @@ class Transformer(nn.Module):
                 hyps = self.beam_search_inference(
                     mem, src_mask, max_len, beam_width)
 
-            return {
+            ret.update({
                 'hyps': hyps,
-            }
+            })
+
+        return ret
 
     def padding_mask(self, lens):
         """Mask out the blank (padding) values

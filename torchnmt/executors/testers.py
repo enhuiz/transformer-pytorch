@@ -1,7 +1,9 @@
 import os
 import tqdm
-import torch
+import numpy as np
 import pandas as pd
+
+import torch
 
 from torchnmt.executors.base import Executor
 from torchnmt.utils import unpack_packed_sequence
@@ -44,10 +46,14 @@ class NMTTester(Tester):
         vocab = dl.dataset.tgt_vocab
 
         refs, hyps = [], []
+        losses = []
         for batch in tqdm.tqdm(dl, total=len(dl)):
             batch_refs = unpack_packed_sequence(batch['tgt'])
             with torch.no_grad():
-                batch_hyps = model(src=batch['src'], **vars(self.opts))['hyps']
+                out = model(**batch, **vars(self.opts))
+                batch_hyps = out['hyps']
+                loss = out['loss']
+                losses.append(loss.item())
 
             refs += [vocab.strip_beos_w(vocab.idxs2words(ref))
                      for ref in batch_refs]
@@ -61,10 +67,12 @@ class NMTTester(Tester):
 
         pathbase = os.path.join(folder, '{}')
 
-        scores = str(compute_scores(refs, hyps))
+        scores = compute_scores(refs, hyps)
+        scores['loss'] = np.mean(losses)
+        scores['ppl'] = np.exp(scores['loss'])
 
         with open(pathbase.format('scores.txt'), 'w') as f:
-            f.write(scores)
+            f.write(str(scores))
 
         print(scores)
 

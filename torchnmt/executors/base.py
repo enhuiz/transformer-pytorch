@@ -14,9 +14,11 @@ from .utils import CheckpointSaver
 class Executor(object):
     def __init__(self, opts, random_seed=7):
         self.opts = opts
-        self.writer = SummaryWriter('runs/{}'.format(self.opts.name))
         self.saver = CheckpointSaver('ckpt/{}'.format(self.opts.name))
         self.set_seed(random_seed)
+
+    def create_writer(self, split):
+        return SummaryWriter('runs/{}/{}'.format(self.opts.name, split))
 
     def create_model(self, state_dict=None):
         if state_dict is not None:
@@ -69,7 +71,10 @@ class Executor(object):
         pass
 
     def on_iteration_end(self):
-        pass
+        self.log()
 
     def update(self, batch):
+        pass
+
+    def log(self):
         pass

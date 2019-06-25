@@ -27,14 +27,18 @@ class Tester(Executor):
         ckpts = [(self.saver.parse_step(ckpt), ckpt)
                  for ckpt in ckpts]
 
-        dataloaders = [(sp, self.create_data_loader(sp))
-                       for sp in self.opts.splits]
+        splits = [(split,
+                   self.create_data_loader(split),
+                   self.create_writer(split + '*'))
+                  for split in self.opts.splits]
 
         for epoch, ckpt in ckpts:
             model = None
-            for split, dl in dataloaders:
-                outdir = os.path.join(
-                    'results', self.opts.name, str(epoch), split)
+            for split, dl, writer in splits:
+                outdir = os.path.join('results',
+                                      self.opts.name,
+                                      str(epoch),
+                                      split)
                 if not os.path.exists(outdir):
                     print('Evaluating {} ...'.format(outdir))
                     model = model or self.create_model(ckpt)
@@ -42,7 +46,7 @@ class Tester(Executor):
                     self.outdir = outdir
                     self.dl = dl
                     self.model = model.eval()
-                    self.split = split
+                    self.writer = writer
                     yield
 
     def done(self):
@@ -89,10 +93,8 @@ class NMTTester(Tester):
             ppl = np.exp(loss)
             scores['loss'] = loss
             scores['ppl'] = ppl
-            self.writer.add_scalar('epoch_{}_loss'.format(self.split),
-                                   loss, self.epoch)
-            self.writer.add_scalar('epoch_{}_ppl'.format(self.split),
-                                   ppl, self.epoch)
+            self.writer.add_scalar('loss', loss, self.epoch)
+            self.writer.add_scalar('ppl', ppl, self.epoch)
 
         print(scores)
 

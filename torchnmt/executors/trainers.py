@@ -8,12 +8,13 @@ from torchnmt.executors.base import Executor
 class Trainer(Executor):
     def __init__(self, opts):
         super().__init__(opts)
+        self.writer = self.create_writer('train')
 
     def create_optimizer(self):
         if hasattr(self.opts, 'optimizer'):
             optimizer = self.opts.optimizer
         else:
-            optimizer = 'sgd'
+            optimizer = 'adam'
 
         params = self.model.parameters()
 
@@ -47,14 +48,16 @@ class Trainer(Executor):
         super().start()
 
     def on_iteration_end(self):
-        self.writer.add_scalar('loss', self.loss, self.iteration)
+        self.writer.add_scalar('batch-loss', self.loss, self.iteration)
         self.iteration += 1
+        super().on_iteration_end()
 
     def on_epoch_end(self):
         if self.epoch % self.opts.save_every == 0:
             self.saver.save('epoch', self.model.state_dict(), self.epoch)
         self.update_lr()
         self.epoch += 1
+        super().on_epoch_end()
 
     def update_lr(self):
         lr = self.opts.lr * 0.95 ** (self.epoch // 2)
@@ -92,8 +95,7 @@ class NMTTrainer(Trainer):
         self.losses.append(self.loss)
 
     def on_iteration_end(self):
-        self.writer.add_scalar('ppl', self.ppl, self.epoch)
-
+        self.writer.add_scalar('batch-ppl', self.ppl, self.epoch)
         super().on_iteration_end()
 
     def on_epoch_end(self):
@@ -104,8 +106,8 @@ class NMTTrainer(Trainer):
         print('Train:\tloss: {:.4g}, ppl: {:.4g}'.format(loss,
                                                          ppl))
 
-        self.writer.add_scalar('epoch_train_loss', loss, self.epoch)
-        self.writer.add_scalar('epoch_train_ppl', ppl, self.epoch)
+        self.writer.add_scalar('loss', loss, self.epoch)
+        self.writer.add_scalar('ppl', ppl, self.epoch)
 
         super().on_epoch_end()
 

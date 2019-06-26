@@ -15,8 +15,26 @@ class Validator(Executor):
         super().__init__(opts)
         self.model = self.create_model().train()  # don't inference
 
+    def prepare_ckpts(self):
+        ckpts = self.saver.get_all_ckpts('epoch')
+
+        if not hasattr(self.opts, 'mode'):
+            self.opts.mode = 'all'
+
+        if self.opts.mode == 'all':
+            ckpts = sorted(ckpts.items())
+        elif self.opts.mode == 'latest':
+            ckpts = [max(ckpts.items())]
+        elif 'every-' in self.opts.mode:
+            n = int(self.opts.mode.split('-')[1])
+            ckpts = [(e, ckpts[e])
+                     for e in range(n, len(ckpts) + 1, n)]
+        else:
+            raise Exception('Unknown mode: {}'.format(self.opts.mode))
+        return ckpts
+
     def epoch_iter(self):
-        ckpts = sorted(self.saver.get_all_ckpts('epoch').items())
+        ckpts = self.prepare_ckpts()
 
         splits = [(split,
                    self.create_data_loader(split),
@@ -25,7 +43,7 @@ class Validator(Executor):
 
         for epoch, ckpt in ckpts:
             for split, dl, writer in splits:
-                print('Validating epoch {}, split: {} ...'.format(epoch, split))
+                print('Running epoch {}, split: {} ...'.format(epoch, split))
                 self.epoch = epoch
                 self.split = split
                 self.dl = dl

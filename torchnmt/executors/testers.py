@@ -6,15 +6,15 @@ import glob
 
 import torch
 
-from torchnmt.executors.base import Executor
+from torchnmt.executors.validators import Validator
 from torchnmt.utils import unpack_packed_sequence
 from torchnmt.scores import compute_scores
 
 
-class Tester(Executor):
+class Tester(Validator):
     def __init__(self, opts):
         super().__init__(opts)
-        self.model = self.create_model().eval()
+        self.model = self.model.eval()
 
     def extract_val_loss(self, path):
         epoch = int(path.split(os.path.sep)[-3])
@@ -23,26 +23,17 @@ class Tester(Executor):
         return epoch, loss
 
     def prepare_ckpts(self):
-        ckpts = self.saver.get_all_ckpts('epoch')
-        if self.opts.mode == 'all':
-            ckpts = sorted(ckpts.items())
-        if self.opts.mode == 'latest':
-            ckpts = [max(ckpts.items())]
-        elif 'every-' in self.opts.mode:
-            n = int(self.opts.mode.split('-')[1])
-            ckpts = [(e, ckpts[e])
-                     for e in range(n, len(ckpts) + 1, n)]
-        elif self.opts.mode == 'best':
+        if self.opts.mode == 'best':
+            ckpts = self.saver.get_all_ckpts('epoch')
             paths = glob.glob(os.path.join(
                 'results', self.opts.name, '**/val/val.txt'))
             if not paths:
-                raise Exception('results/{}/**/{}/val.txt not found'.format(
-                    self.opts.name))
+                raise Exception('Best val.txt not found')
             e = min(map(self.extract_val_loss, paths),
                     key=lambda kv: kv[1])[0]
             ckpts = [(e, ckpts[e])]
         else:
-            raise Exception('Unknown test mode: {}'.format(self.opts.mode))
+            ckpts = super().prepare_ckpts()
         return ckpts
 
     def epoch_iter(self):

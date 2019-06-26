@@ -57,6 +57,10 @@ class Executor(object):
         torch.backends.cudnn.deterministic = True  # cudnn
 
     def start(self):
+        for _ in self:
+            pass
+
+    def __iter__(self):
         for _ in self.epoch_iter():
             try:
                 self.on_epoch_start()
@@ -65,6 +69,7 @@ class Executor(object):
                         self.on_iteration_start()
                         self.update()
                         self.on_iteration_end()
+                        yield
                     except IterationSkipper:
                         continue
                 self.on_epoch_end()

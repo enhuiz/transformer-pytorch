@@ -7,11 +7,12 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn.utils.rnn import pad_packed_sequence
 
-from .encoders import TransformerEncoder
-from .decoders import TransformerDecoder
-
 from torchnmt import networks
 from torchnmt.datasets.utils import Vocab
+
+from .encoders import TransformerEncoder
+from .decoders import TransformerDecoder
+from .utils import padding_mask, subsequent_mask
 
 
 class Transformer(nn.Module):
@@ -37,7 +38,7 @@ class Transformer(nn.Module):
         pad = Vocab.extra2idx('<pad>')
         src, src_len = pad_packed_sequence(src, True, pad)
         src = src.to(self.device)
-        src_mask = self.padding_mask(src_len)
+        src_mask = padding_mask(src_len).to(self.device)
         mem = self.encoder(src, src_mask)
 
         ret = {}
@@ -45,8 +46,8 @@ class Transformer(nn.Module):
         if tgt is not None:
             tgt, tgt_len = pad_packed_sequence(tgt, True, pad)
             tgt = tgt.to(self.device)
-            tgt_mask = self.padding_mask(tgt_len) * \
-                self.subsequent_mask(tgt_len)
+            tgt_mask = padding_mask(tgt_len) & subsequent_mask(tgt_len)
+            tgt_mask = tgt_mask.to(self.device)
 
             outputs = self.decoder(tgt, mem, src_mask, tgt_mask)
             logp = F.log_softmax(outputs, dim=-1)
@@ -78,32 +79,6 @@ class Transformer(nn.Module):
 
         return ret
 
-    def padding_mask(self, lens):
-        """Mask out the blank (padding) values
-        Args:
-            lens: (bs,)
-        Return:
-            mask: (bs, 1, max_len)
-        """
-        bs, max_len = len(lens), max(lens)
-        mask = torch.zeros(bs, 1, max_len)
-        for i, l in enumerate(lens):
-            mask[i, :, :l] = 1
-        mask = mask.to(self.device)
-        return mask
-
-    def subsequent_mask(self, lens):
-        """Mask out future word
-        Args:
-            lens: (bs,)
-        Return:
-            mask: (bs, max_len, max_len)
-        """
-        bs, max_len = len(lens), max(lens)
-        mask = torch.ones([bs, max_len, max_len]).tril_(0)
-        mask = mask.to(self.device)
-        return mask
-
     def greedy_inference(self, mem, mem_mask, max_len):
         """
         Args:
@@ -118,8 +93,9 @@ class Transformer(nn.Module):
         running = torch.full((len(mem), 1), bos).long().to(self.device)
         finished = []
 
-        for _ in range(max_len):
-            outputs = self.decoder(running, mem, mem_mask, None)
+        for l in range(1, max_len):
+            tgt_mask = subsequent_mask([l]).to(self.device)
+            outputs = self.decoder(running, mem, mem_mask, tgt_mask)
             outputs = outputs[:, -1].argmax(dim=-1)  # (bs,)
             running = torch.cat([running, outputs[:, None]], dim=-1)
 
@@ -152,26 +128,32 @@ class Transformer(nn.Module):
         bos = Vocab.extra2idx('<s>')
         eos = Vocab.extra2idx('</s>')
 
-        logps = torch.tensor([0.0]).to(self.device)
-        hyps = torch.tensor([[bos]]).long().to(self.device)
+        # create k (beam_width) beams for simplicity
+        # but need to set the first logp 0 and the rest -inf
+        # otherwise the k beams will dominate during the whole decoding
+        logps = torch.full((beam_width, ), -np.inf).to(self.device)
+        logps[0] = 0
+        hyps = torch.full((beam_width, 1), bos).long().to(self.device)
 
         finished = []
 
         memory = memory.expand(beam_width, *memory.shape[1:])
         mem_mask = mem_mask.expand(beam_width, *mem_mask.shape[1:])
 
-        for _ in range(1, max_len):
-            if len(logps) <= 0:
-                break
+        for l in range(1, max_len):
+            k = len(logps)
+
+            tgt_mask = subsequent_mask([l]).to(self.device)
 
             outputs = self.decoder(hyps,
-                                   memory[:len(logps)],
-                                   mem_mask[:len(logps)])
+                                   memory[:k],
+                                   mem_mask[:k],
+                                   tgt_mask)
 
             outputs = torch.log_softmax(outputs[:, -1], dim=-1)
 
             # for each beam, calculate top k
-            tmp_logps, tmp_idxs = torch.topk(outputs, beam_width)
+            tmp_logps, tmp_idxs = torch.topk(outputs, k)
 
             # calculate accumulated logps
             tmp_logps += logps[:, None]
@@ -180,10 +162,10 @@ class Transformer(nn.Module):
             tmp_logps = tmp_logps.view(-1)
             tmp_idxs = tmp_idxs.view(-1)
 
-            logps, idxs = torch.topk(tmp_logps, beam_width)
+            logps, idxs = torch.topk(tmp_logps, k)
 
             words = tmp_idxs[idxs]
-            hyps_idxs = idxs // len(logps)
+            hyps_idxs = idxs // k
 
             hyps = torch.cat([hyps[hyps_idxs], words[:, None]], dim=1)
 
@@ -194,6 +176,9 @@ class Transformer(nn.Module):
 
             logps = logps[running_idx]
             hyps = hyps[running_idx]
+
+            if len(logps) <= 0:
+                break
 
         finished = finished + list(zip(logps, hyps))
 

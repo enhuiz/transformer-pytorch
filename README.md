@@ -54,15 +54,15 @@ python scripts/test.py config/xiaoshi/transformer.yml
 
 | Model       | BLEU (val/test) | METEOR (val/test) | TER (val/test) |
 | ----------- | --------------- | ----------------- | -------------- |
-| Transformer | 31.4/32.2       | 48.1/49.2         | 50.9/51.0      |
+| Transformer | 35.3/35.7       | 56.0/55.0         | 49.0/48.2      |
 
 #### Examples
 
-| En                                                                        | De (Model)                                                        | De (Ground Truth)                                                      |
-| ------------------------------------------------------------------------- | ----------------------------------------------------------------- | ---------------------------------------------------------------------- |
-| A man in an orange hat starring at something                              | ein mann mit einem orangefarbenen hut starrt auf etwas            | ein mann mit einem orangefarbenen hut der etwas <unk>                  |
-| A Boston Terrier is running on lush green grass in front of a white fence | ein fan rennt auf einer grünen wiese vor einem weißen zaun        | ein boston terrier läuft über saftig grünes gras vor einem weißen zaun |
-| A girl in karate uniform breaking a stick with a front kick               | ein mädchen in einem karateanzug folgt dem vor einem fußtritt her | ein mädchen in einem karateanzug bricht einen stock mit einem tritt    |
+| En                                                                        | De (Model)                                                          | De (Ground Truth)                                                      |
+| ------------------------------------------------------------------------- | ------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| A man in an orange hat starring at something                              | ein mann mit orangefarbenem hut starrt etwas an                     | ein mann mit einem orangefarbenen hut der etwas <unk>                  |
+| A Boston Terrier is running on lush green grass in front of a white fence | ein kampfrichter rennt auf einer grünen wiese vor einem weißen zaun | ein boston terrier läuft über saftig grünes gras vor einem weißen zaun |
+| A girl in karate uniform breaking a stick with a front kick               | ein mädchen in karateanzügen folgt einem stock mit einem fußtritt   | ein mädchen in einem karateanzug bricht einen stock mit einem tritt    |
 
 ### Xiaoshi (Poetry-Chinese)
 
@@ -76,15 +76,15 @@ python scripts/test.py config/xiaoshi/transformer.yml
 
 | Model       | BLEU | TER   |
 | ----------- | ---- | ----- |
-| Transformer | 0.8  | 104.3 |
+| Transformer | 0.7  | 127.5 |
 
 #### Examples
 
-| Poetry                           | Chinese (Model)                                                                                                | Chinese (Ground Truth)                                                                                               |
-| -------------------------------- | -------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| 繖幄垂垂马踏沙，水长山远路多花。 | 两 岸 青 山 着 波 浪 花 瓣 ， 沿 着 路 上 的 沙 岸 ， 白 云 正 在 长 安 路 上 ， 重 叠 水 中 已 经 过 去 了 。 | 马 后 垂 着 伞 盖 ， 马 蹄 踩 着 黄 沙 ， 沙 沙 ， 沙 沙 。 山 遥 遥 ， 水 茫 茫 ， 沿 路 见 到 那 么 多 的 野 花 。 |
-| 眼中形势胸中策，缓步徐行静不哗。 | 池 塘 中 的 忧 愁 绪 纷 纷 纷 杂 ， 就 好 像 想 要 平 盛 世 上 的 音 。                                        | 眼 观 敌 我 形 势 ， 战 术 方 略 早 已 成 竹 在 胸 。 兵 马 缓 步 前 进 ， 三 军 肃 静 无 人 喧 哗 。                |
-| 满腹诗书漫古今，频年流落易伤心。 | 两 年 来 ， 流 落 他 们 ， 但 我 的 心 情 愿 在 地 上 ， 流 落 他 依 旧 古 今 年 的 兴 致 都 是 古 今 了 。    | 装 满 一 肚 子 诗 书 ， 博 古 通 今 。 连 年 流 落 他 乡 ， 最 易 伤 情 。                                           |
+| Poetry                           | Chinese (Model)                                                      | Chinese (Ground Truth)                                                                                               |
+| -------------------------------- | -------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| 繖幄垂垂马踏沙，水长山远路多花。 | 黄 昏 时 分 ， 山 路 旁 边 的 树 木 ， 水 面 对 着 竹 林 。          | 马 后 垂 着 伞 盖 ， 马 蹄 踩 着 黄 沙 ， 沙 沙 ， 沙 沙 。 山 遥 遥 ， 水 茫 茫 ， 沿 路 见 到 那 么 多 的 野 花 。 |
+| 眼中形势胸中策，缓步徐行静不哗。 | 当 年 的 文 章 中 之 后 ， 他 们 不 知 道 他 们 。                   | 眼 观 敌 我 形 势 ， 战 术 方 略 早 已 成 竹 在 胸 。 兵 马 缓 步 前 进 ， 三 军 肃 静 无 人 喧 哗 。                |
+| 满腹诗书漫古今，频年流落易伤心。 | 当 年 我 们 在 这 时 节 的 时 候 ， 我 心 情 况 是 我 的 心 情 郎 。 | 装 满 一 肚 子 诗 书 ， 博 古 通 今 。 连 年 流 落 他 乡 ， 最 易 伤 情 。                                           |
 
 ## Acknowledgement
 

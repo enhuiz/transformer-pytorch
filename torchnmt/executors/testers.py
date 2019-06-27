@@ -43,6 +43,8 @@ class NMTVisualizer(Tester):
 
     def on_epoch_start(self):
         self.losses = []
+        self.model.load_state_dict(torch.load(self.ckpt))
+        print('ckpt {} loaded'.format(self.ckpt))
 
     def update(self):
         with torch.no_grad():

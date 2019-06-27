@@ -36,27 +36,21 @@ class Tester(Validator):
             ckpts = super().prepare_ckpts()
         return ckpts
 
-    def epoch_iter(self):
-        ckpts = self.prepare_ckpts()
 
-        splits = [(split,
-                   self.create_data_loader(split))
-                  for split in self.opts.splits]
+class NMTVisualizer(Tester):
+    def __init__(self, opts):
+        super().__init__(opts)
 
-        for epoch, ckpt in ckpts:
-            for split, dl in splits:
-                print('Testing epoch {}, split: {} ...'.format(epoch, split))
-                self.epoch = epoch
-                self.split = split
-                self.dl = dl
-                self.ckpt = ckpt
-                yield
+    def on_epoch_start(self):
+        self.losses = []
 
-    def iteration_iter(self):
-        self.pbar = tqdm.tqdm(self.dl, total=len(self.dl))
-        for batch in self.pbar:
-            self.batch = batch
-            yield
+    def update(self):
+        with torch.no_grad():
+            loss = self.model(**self.batch, **vars(self.opts))['loss']
+        self.losses.append(loss.item())
+
+    def on_epoch_end(self):
+        pass
 
 
 class NMTTester(Tester):

@@ -1,0 +1,48 @@
+dataset:
+  proto: NMTDataset
+  root: data/your-dataset-name
+  src: your-source-corpus.txt # (under ./data/your-dataset-name/)
+  tgt: your-target-corpus.txt # (under ./data/your-dataset-name/)
+
+model:
+  proto: Transformer
+
+  encoder:
+    proto: TransformerEncoder
+    model_dim: 8
+    ffn_dim: 16
+    layers: 2
+    heads: 2
+    vocab_size: 3 # set your vocabulary size
+
+  decoder:
+    proto: TransformerDecoder
+    model_dim: 8
+    ffn_dim: 16
+    layers: 2
+    heads: 2
+    vocab_size: 3 # set your vocabulary size
+
+train:
+  proto: NMTTrainer
+  device: cpu # use cuda if you have an NVIDIA card supports cuda
+  lr: 0.0001
+  batch_size: 16
+  epochs: 200
+  continued: true
+  save_every: 50
+
+validate:
+  proto: NMTValidator
+  device: cpu # use cuda if you have an NVIDIA card supports cuda
+  batch_size: 16
+  splits: [test, train]
+
+test:
+  proto: NMTTester
+  device: cpu # use cuda if you have an NVIDIA card supports cuda
+  batch_size: 16
+  beam_width: 5
+  splits: [test, train]
+  max_len: 52
+  mode: latest

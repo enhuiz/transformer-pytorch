@@ -1,0 +1,48 @@
+dataset:
+  proto: NMTDataset
+  root: data/your-dataset-name
+  src: your-source-corpus.txt # (under ./data/your-dataset-name/)
+  tgt: your-target-corpus.txt # (under ./data/your-dataset-name/)
+
+model:
+  proto: Transformer
+
+  encoder:
+    proto: TransformerEncoder
+    model_dim: 512
+    ffn_dim: 2048
+    layers: 6
+    heads: 8
+    vocab_size: replace-this-with-your-source-vocab-size # set your vocabulary size
+
+  decoder:
+    proto: TransformerDecoder
+    model_dim: 512
+    ffn_dim: 2048
+    layers: 6
+    heads: 8
+    vocab_size: replace-this-with-your-source-vocab-size # set your vocabulary size
+
+train:
+  proto: NMTTrainer
+  device: cuda
+  lr: 0.0001
+  batch_size: 16
+  epochs: 10
+  continued: true
+  save_every: 1
+
+validate:
+  proto: NMTValidator
+  device: cuda
+  batch_size: 16
+  splits: [val, test]
+
+test:
+  proto: NMTTester
+  device: cuda
+  batch_size: 16
+  beam_width: 5
+  splits: [val, test]
+  max_len: 52
+  mode: latest

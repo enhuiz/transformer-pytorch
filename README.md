@@ -86,8 +86,14 @@ python scripts/test.py config/xiaoshi/transformer.yml
 | 眼中形势胸中策，缓步徐行静不哗。 | 当 年 的 文 章 中 之 后 ， 他 们 不 知 道 他 们 。                   | 眼 观 敌 我 形 势 ， 战 术 方 略 早 已 成 竹 在 胸 。 兵 马 缓 步 前 进 ， 三 军 肃 静 无 人 喧 哗 。                |
 | 满腹诗书漫古今，频年流落易伤心。 | 当 年 我 们 在 这 时 节 的 时 候 ， 我 心 情 况 是 我 的 心 情 郎 。 | 装 满 一 肚 子 诗 书 ， 博 古 通 今 。 连 年 流 落 他 乡 ， 最 易 伤 情 。                                           |
 
+## Write Your Own Configuration
+
+Please check config/your-dataset-name/your-config.yml for details if you have your own dataset.
+
 ## Acknowledgement
 
 - https://github.com/jadore801120/attention-is-all-you-need-pytorch
 - http://nlp.seas.harvard.edu/2018/04/03/attention.html
 - https://github.com/OpenNMT/OpenNMT-py
+
+

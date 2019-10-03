@@ -1,0 +1,1 @@
+words are separated by space and sentences are separated by line breaker. 

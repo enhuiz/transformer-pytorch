@@ -3,6 +3,7 @@ import torch
 import torch.nn as nn
 
 from .layers import SublayerWrapper, PositionalEncoding, MultiHeadAttention, FeedForwardLayer
+from ..datasets.utils import Vocab
 
 
 class TransformerDecoderLayer(nn.Module):
@@ -30,7 +31,7 @@ class TransformerDecoderLayer(nn.Module):
 class TransformerDecoder(nn.Module):
     def __init__(self, layers, heads, vocab_size, model_dim, ffn_dim, dropout=0.1):
         super().__init__()
-        self.embed = nn.Embedding(vocab_size, model_dim)
+        self.embed = nn.Embedding(vocab_size + len(Vocab.extra), model_dim)
         self.pe = PositionalEncoding(model_dim)
         c = copy.deepcopy
         mha = MultiHeadAttention(heads, model_dim)
@@ -38,7 +39,7 @@ class TransformerDecoder(nn.Module):
         layer = TransformerDecoderLayer(
             model_dim, c(mha), c(mha), c(ffn), dropout)
         self.layers = nn.ModuleList([c(layer) for _ in range(layers)])
-        self.fc = nn.Linear(model_dim, vocab_size)
+        self.fc = nn.Linear(model_dim, vocab_size + len(Vocab.extra))
 
     def forward(self, x, m, mem_mask, tgt_mask=None):
         """

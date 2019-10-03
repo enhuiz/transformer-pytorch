@@ -39,7 +39,11 @@ class NMTDataset(Dataset):
         raise NotImplementedError()
 
     def load_file(self, path):
-        raise NotImplementedError()
+        """Default loading function, which loads nth sentence at line n.
+        """
+        with open(path, 'r') as f:
+            content = f.read().strip()
+        return [s.strip().split() for s in content.split('\n')]
 
     def make_samples(self, root, split, src, tgt):
         src = self.load_file(os.path.join(root, split + '.' + src))

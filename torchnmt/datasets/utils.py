@@ -49,8 +49,11 @@ class Vocab():
 
     def __str__(self):
         return ("Vocab(#words={}, #vocab={}, #extra={})\n"
-                "Example: {}").format(len(self), len(self.vocab),
-                                      len(self.extra), random.sample(self.vocab, 5))
+                "Example: {}"
+                .format(len(self), len(self.vocab),
+                        len(self.extra),
+                        random.sample(self.vocab,
+                                      min(5, len(self.vocab)))))
 
     def __iter__(self):
         for w in self.words:

@@ -13,7 +13,7 @@ model:
     ffn_dim: 16
     layers: 2
     heads: 2
-    vocab_size: 3 # set your vocabulary size
+    vocab_size: 3 # set your vocabulary size for your source language
 
   decoder:
     proto: TransformerDecoder
@@ -21,11 +21,11 @@ model:
     ffn_dim: 16
     layers: 2
     heads: 2
-    vocab_size: 3 # set your vocabulary size
+    vocab_size: 3 # set your vocabulary size for your target language
 
 train:
   proto: NMTTrainer
-  device: cpu # use cuda if you have an NVIDIA card supports cuda
+  device: cpu # use cuda if you have an NVIDIA card that supports cuda
   lr: 0.0001
   batch_size: 16
   epochs: 200
@@ -34,13 +34,13 @@ train:
 
 validate:
   proto: NMTValidator
-  device: cpu # use cuda if you have an NVIDIA card supports cuda
+  device: cpu # use cuda if you have an NVIDIA card that supports cuda
   batch_size: 16
   splits: [test, train]
 
 test:
   proto: NMTTester
-  device: cpu # use cuda if you have an NVIDIA card supports cuda
+  device: cpu # use cuda if you have an NVIDIA card that supports cuda
   batch_size: 16
   beam_width: 5
   splits: [test, train]
